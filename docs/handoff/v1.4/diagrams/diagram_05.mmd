@@ -1,0 +1,10 @@
+flowchart LR
+    DEV[MacBook Pro<br/>Docker Compose + local tests] --> CI[Git + CI<br/>Unit / Integration / Evals]
+    CI --> BUILD[Multi-architecture images<br/>linux/arm64 and amd64]
+    BUILD --> VM[Free / low-cost Linux VM<br/>Capacity & policy verified]
+    VM --> FRONT[Authenticated UI / API]
+    VM --> WORK[Worker / LangGraph]
+    VM --> DB[(Postgres / pgvector + volumes)]
+    DB --> BACKUP[Encrypted off-host backups<br/>Restore drills]
+    WORK --> LLM[External API providers<br/>Independent inference budget]
+    FRONT --> CLIENT[Remote browser / phone]

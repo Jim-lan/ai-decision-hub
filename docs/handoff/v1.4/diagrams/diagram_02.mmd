@@ -1,0 +1,30 @@
+flowchart TB
+    WEB[React UI<br/>Chats / Projects / Tasks / Memory / Approvals] --> API[FastAPI API v1<br/>Auth / SSE / Versioned Contracts]
+    API --> APP[Application Services<br/>Use cases, validation, idempotency]
+    APP --> ROUTE[Goal Router / Chief of Staff]
+    ROUTE --> LG[LangGraph Workflow Runtime<br/>Checkpoint / Interrupt / Resume]
+    LG --> DEC[Existing Multi-LLM Decision Subgraph]
+    LG --> TEAM[Team Subgraphs / Specialists]
+    TEAM --> DEEP[Optional Deep Agents Harness]
+    LG --> TASKS[Task Ledger + Claim/Lease Worker]
+    LG --> CONTEXT[Context Builder / MemoryPort]
+    LG --> PROVIDER[ProviderPort / Model Registry]
+    LG --> TOOL[Tool Gateway / SandboxPort]
+    TOOL --> POLICY[Policy + Budget Enforcement]
+    APP --> REG[Agent and Skill Registry]
+    APP --> APPROVAL[Approvals / Audit]
+    APP --> ARTS[ArtifactPort / Object Store]
+    APP --> EVAL[Evaluation / Observability]
+    subgraph DATA[Owner-controlled Persistence]
+        PG[(PostgreSQL + pgvector)]
+        FS[(Files / Backups)]
+    end
+    TASKS --> PG
+    CONTEXT --> PG
+    REG --> PG
+    APPROVAL --> PG
+    ARTS --> FS
+    EVAL --> PG
+    PROVIDER --> EXTERNAL[Official model APIs / Manual import]
+    POLICY --> PG
+    API --> PG

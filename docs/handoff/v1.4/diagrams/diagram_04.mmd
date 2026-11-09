@@ -1,0 +1,17 @@
+erDiagram
+    PROJECT ||--o{ TASK : contains
+    TASK ||--o{ TASK : decomposes
+    TASK ||--o{ AGENT_RUN : attempts
+    TASK ||--o{ ARTIFACT : produces
+    AGENT_DEFINITION ||--o{ AGENT_VERSION : versions
+    AGENT_VERSION ||--o{ AGENT_RUN : executes
+    SKILL_DEFINITION ||--o{ SKILL_VERSION : versions
+    AGENT_VERSION ||--o{ AGENT_SKILL : references
+    SKILL_VERSION ||--o{ AGENT_SKILL : included
+    TASK ||--o{ APPROVAL : gates
+    AGENT_RUN ||--o{ TOOL_ACTION : invokes
+    AGENT_RUN ||--o{ EVALUATION_RESULT : assessed
+    AGENT_RUN ||--o{ ARTIFACT : generates
+    PROJECT ||--o{ MEMORY : retrieves_by_scope
+    PROJECT ||--o{ DECISION : includes
+    ARTIFACT ||--o{ ARTIFACT_SOURCE : traces

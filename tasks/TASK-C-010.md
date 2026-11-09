@@ -1,0 +1,32 @@
+# C-010 · Guard outbound context, replay and spend
+
+| Field | Value |
+|---|---|
+| Status | Awaiting G1 or prerequisite evidence |
+| Milestone | P0-M1 |
+| Baseline reference | g1-design-v2.0 (usable only once the approved annotated tag exists) |
+| Requirement IDs | FR-013, FR-014, FR-015, FR-018, NFR-004, NFR-005, NFR-013 |
+| Responsible role | Implementer, separate reviewer, CI integrator |
+| Dependencies | C-003, C-004, C-005, C-006 |
+| Planned change surface | ContextPort, BudgetPort, policy repository, run idempotency |
+| Test matrix | P0-08, P0-09, P0-10 |
+
+## Outcome and deliverables
+
+Reserve worst-case spend across run/day/month; freeze scoped/redacted outbound snapshots. Persist idempotency and audit with the business write. Zero spend is the initial cap. Deliver the scoped implementation, regression fixtures, and a verification record in docs/test-reports/C-010.md. Treat the pre-G1 prototype as input requiring conformance review.
+
+## Inputs and limits
+
+Use the tagged traceability matrix, architecture, OpenAPI, test matrix and merged dependencies above. Excluded work includes agent tool permissions, learned routing, semantic retrieval.
+
+## Acceptance and verification
+
+Race requests at the last budget unit and observe at most one eligible dispatch. Unknown maximum price, absent consent or denied source prevents network I/O. Same key plus changed payload conflicts. Run the named matrix cases, isolated unit and contract checks for modified ports, and real PostgreSQL integration for durable changes. Re-run the preceding milestone's vertical slice. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
+
+## Integration and recovery
+
+C-007 and C-009 depend on preflight before dispatch. Switch outbound off and reconcile outstanding reservations during rollback.
+
+## Change control
+
+A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.

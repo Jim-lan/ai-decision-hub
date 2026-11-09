@@ -1,0 +1,27 @@
+flowchart TD
+    START([Goal submitted]) --> SAVE[Persist request + idempotency key]
+    SAVE --> SCOPE[Identify project and relevant memory]
+    SCOPE --> CLASSIFY{Route}
+    CLASSIFY -->|Direct| ANSWER[One-model response]
+    CLASSIFY -->|Model comparison| COMP[Existing independent model fan-out]
+    CLASSIFY -->|Delegated research| PLAN[Chief of Staff creates bounded task DAG]
+    PLAN --> AUTH{Budget / scope permitted?}
+    AUTH -->|No| REJECT[Ask for explicit approval or trim scope]
+    AUTH -->|Yes| EXEC[Research Lead delegates independent sub-tasks]
+    EXEC --> COLLECT[Workers store referenced findings as artifacts]
+    COLLECT --> VERIFY[Evidence reviewer checks key claims / sources]
+    VERIFY --> QUALITY{Acceptance criteria met?}
+    QUALITY -->|No, retry budget available| RETRY[Targeted rework - limited attempts]
+    RETRY --> EXEC
+    QUALITY -->|No, limits reached| PARTIAL[Return partial report + gaps]
+    QUALITY -->|Yes| SYNTH[Consensus / alternatives / provenance]
+    SYNTH --> SAVE2[Save report, claims and decision candidates]
+    SAVE2 --> HUMAN{External action or memory promotion?}
+    HUMAN -->|Yes| APPROVAL[Human review and approval]
+    HUMAN -->|No| REPORT[Final summary and original artifacts]
+    APPROVAL --> REPORT
+    COMP --> REPORT
+    ANSWER --> REPORT
+    PARTIAL --> REPORT
+    REJECT --> REPORT
+    REPORT --> DONE([Completed / Awaiting owner decision])

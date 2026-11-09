@@ -1,0 +1,28 @@
+flowchart TD
+    OWNER[Owner / Approver] --> UI[Personal AI Workspace]
+    UI --> CHIEF[Chief of Staff<br/>Goal intake / planning / status]
+    CHIEF --> ROUTER{Work complexity?}
+    ROUTER -->|Simple| DIRECT[Direct assistant]
+    ROUTER -->|Compare models| COMP[Existing Decision Comparison Subgraph]
+    ROUTER -->|Complex work| PLAN[Task Plan + Task Ledger]
+    PLAN --> RESEARCH[Research Lead]
+    PLAN --> ENG[Engineering Lead - later]
+    PLAN --> KNOW[Knowledge Lead - later]
+    PLAN --> OPS[Operations Lead - later]
+    RESEARCH --> R1[Research Worker]
+    RESEARCH --> R2[Evidence Reviewer]
+    RESEARCH --> R3[Consensus Analyst]
+    ENG --> E1[Architect]
+    ENG --> E2[Code Worker / Sandbox]
+    ENG --> E3[Test / QA Reviewer]
+    KNOW --> K1[Memory Curator]
+    KNOW --> K2[Document Worker]
+    OPS --> O1[Scheduler]
+    OPS --> O2[Integration Worker]
+    POLICY[Policy + Budget + Approvals<br/>Deterministic enforcement] -.-> CHIEF
+    POLICY -.-> R1
+    POLICY -.-> E2
+    REG[Versioned Agent + Skill Registry] -.-> PLAN
+    MEMORY[(Canonical Memory + Decisions)] -.-> CHIEF
+    MEMORY -.-> RESEARCH
+    ART[(Artifacts / Traces / Evidence)] -.-> CHIEF
