@@ -1,13 +1,13 @@
 # Task backlog
 
-**Next action: G0-01.** On resumption give Astra only the open DB-01–07 index and the saved artifact inventory. Ask it to identify unresolved conflicts and incomplete decisions before opening any large source document. Review only the cited sections needed to settle a named gap. A prior chat or planned filename is insufficient evidence of completion.
+**Next action: G0-02 through G0-04.** On resumption give Astra only the open DB-01–07 index and the saved artifact inventory. Ask it to identify unresolved conflicts and incomplete decisions before opening any large source document. Review only the cited sections needed to settle a named gap. A prior chat or planned filename is insufficient evidence of completion.
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|
 | STATE-001 · recovery checkpoint | Complete in this commit | Three root records, updated AGENTS.md, archive comparison, ID coverage and task dependency audit. |
-| G0-01 · targeted gap triage | Ready for Astra when capacity allows | For each open DB item cite surviving ADR/FR or precise source section, affected task/test, remaining decision and disposition. Write docs/requirements/conflict-log.md. |
-| G0-02 · consolidate architecture | Pending G0-01 | docs/architecture/baseline-v2.0.md with modules/ports, scoped data, threats, migration, future seams and editable Mermaid. Build on six existing ADRs. |
-| G0-03 · complete contracts | Pending triage | docs/api/openapi.yaml, domain/event schemas and lifecycle/compatibility notes; run an OpenAPI validator and validate positive/negative fixtures. contracts/openapi.json describes the prototype only. |
+| G0-01 · targeted gap triage | Complete · [conflict log](docs/requirements/conflict-log.md) | For each open DB item cite surviving ADR/FR or precise source section, affected task/test, remaining decision and disposition. Write docs/requirements/conflict-log.md. |
+| G0-02 · consolidate architecture | In progress | docs/architecture/baseline-v2.0.md with modules/ports, scoped data, threats, migration, future seams and editable Mermaid. Build on six existing ADRs. |
+| G0-03 · complete contracts | In progress | docs/api/openapi.yaml, domain/event schemas and lifecycle/compatibility notes; run an OpenAPI validator and validate positive/negative fixtures. contracts/openapi.json describes the prototype only. |
 | G0-04 · close test links | Partial matrix exists | Complete docs/testing/test-matrix.md, account for every P0 test referenced by traceability and all allowed and denied transitions; audit card links. |
 | G0-05 · independent adversarial pass | Pending G0-02–04 | Fresh reviewer inspects versioned candidate, records severity, failure scenario and blocking verdict; resolve blockers and verify corrections. |
 | G1 · freeze | Pending G0-05 and scope approval | docs/G1_FREEZE_REVIEW.md, reviewed matrix, approved ADRs, validation evidence, exact approved SHA and annotated tag. |

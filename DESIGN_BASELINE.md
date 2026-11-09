@@ -10,6 +10,8 @@ The owner requested a working Decision Hub first, with manual import and Gemini 
 - [v1.2 architecture](docs/architecture/baseline-v1.2.md), [v1.3 research](docs/handoff/v1.4/baseline/v1.3_Multi_Agent_Organization_Research_EN.md), [v1.4 roadmap](docs/handoff/v1.4/AI_Decision_Hub_Multi_Agent_Implementation_Roadmap_v1.4_EN.md). Keep historical versions intact.
 - Draft decisions [scope](docs/adr/ADR-201-scope.md), [storage](docs/adr/ADR-202-durability.md), [identity](docs/adr/ADR-203-providers.md), [policy and budgets](docs/adr/ADR-204-policy-budget.md), [report and decision](docs/adr/ADR-205-comparison.md), [recovery](docs/adr/ADR-206-operations.md).
 
+The [G0-01 conflict log](docs/requirements/conflict-log.md) records the proposed disposition and verification obligations for each row.
+
 ## Conflict and decision index
 
 | ID | Evidence and candidate resolution | Outstanding check |

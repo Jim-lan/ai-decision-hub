@@ -18,6 +18,6 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 
 ## Current handoff
 
-The next action is G0-01 in [TASK_BACKLOG.md](TASK_BACKLOG.md). The requested Astra review was interrupted; its resumption time and capacity must be checked when starting a new run. Manual import comes first. Gemini account eligibility and nonzero spend have no approval or test evidence. Keep product implementation gated on G1.
+Astra resumed from ebe6eda and completed G0-01, recording dispositions for DB-01–07. The next actions are G0-02 through G0-04 in [TASK_BACKLOG.md](TASK_BACKLOG.md). The final architecture, API and test matrix are being drafted. Manual import comes first. Gemini account eligibility and nonzero spend have no approval or test evidence. Keep product implementation gated on G1.
 
 At task close update this ledger with commit or task ID, command, result and limitations. Update the decision index if a decision changed and the queue if an item advanced. Record failures explicitly.

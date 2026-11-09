@@ -13,7 +13,7 @@
 
 ## Outcome and deliverables
 
-Save explicit choice and rationale linked to a run and its scoped source/report. Reopen from a new session and show the exact supporting evidence. Deliver the scoped implementation, regression fixtures, and a verification record in docs/test-reports/C-013.md. Treat the pre-G1 prototype as input requiring conformance review.
+Save the explicit choice and any owner-supplied rationale linked to a run and its scoped source/report. Reopen from a new session and show the exact supporting evidence. Deliver the scoped implementation, regression fixtures, and a verification record in docs/test-reports/C-013.md. Treat the pre-G1 prototype as input requiring conformance review.
 
 ## Inputs and limits
 
