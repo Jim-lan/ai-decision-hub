@@ -1,0 +1,34 @@
+name: Workspace
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize ephemeral local secrets
+        run: infra/scripts/init-local.sh
+      - name: Build and start the workspace
+        run: docker compose up --build --wait web
+      - name: Exercise the PostgreSQL integration suite
+        run: docker compose run --build --rm tests
+      - name: Verify the versioned API
+        run: |
+          docker compose exec -T api python -m app.openapi > /tmp/hub-openapi.json
+          diff contracts/openapi.json /tmp/hub-openapi.json
+      - name: Test the public entry point
+        run: |
+          curl --fail http://localhost:8080/
+          curl --fail http://localhost:8080/v1/health
+      - name: Run browser and recovery journeys
+        env:
+          COMPOSE_PROJECT_NAME: aihub-drill-ci
+          HUB_PORT: 18081
+          PUBLIC_BASE_URL: http://localhost:18081
+        run: |
+          docker compose up --build --wait web
+          npm ci --prefix apps/web
+          node apps/web/tests/workspace.mjs
+          infra/scripts/rehearse.sh

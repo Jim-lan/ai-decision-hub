@@ -1,0 +1,66 @@
+name: ai-decision-hub
+x-api: &api
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+    target: runtime
+  environment: &api-env
+    PGHOST: db
+    PGUSER: hub
+    PGDATABASE: aihub
+    POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    OWNER_PASSWORD_FILE: /run/secrets/owner_password
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+  secrets: [db_password, owner_password]
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_DB: aihub
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub -d aihub"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *api
+    depends_on:
+      db: {condition: service_healthy}
+    command: ["alembic", "upgrade", "head"]
+  api:
+    <<: *api
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports: ["127.0.0.1:${HUB_PORT:-8080}:8080"]
+    depends_on:
+      api: {condition: service_healthy}
+  tests:
+    <<: *api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: test
+    profiles: [test]
+    depends_on:
+      db: {condition: service_healthy}
+volumes:
+  dbdata:
+secrets:
+  db_password:
+    file: .secrets/db_password
+  owner_password:
+    file: .secrets/owner_password
