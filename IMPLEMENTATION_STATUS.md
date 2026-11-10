@@ -1,6 +1,6 @@
 # Implementation status
 
-G1 approved · 2026-11-09 · C-001 completed on November 10, 2026.
+G1 approved · 2026-11-09 · C-001 and C-002 completed on November 10, 2026.
 
 ## Recovery
 
@@ -15,16 +15,19 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | Source handoffs | docs/handoff/v1.4 and docs/handoff/governance-v2 preserve package member contents. Canonical governance, prompt and task template are also installed at the working paths. | Imported |
 | Design work | GPT-6 Astra High sessions wrote six proposed ADRs and docs/requirements/traceability.md. Fifteen proposed implementation cards and their dependency order are in tasks/. See STATE-001 commit for the exact snapshot. | Candidate artifacts; no independent review verdict |
 | Runtime interruption | Astra sessions stopped at their usage limit. The API specialist installed a temporary validator and discussed contracts but did not save docs/api/openapi.yaml. No final architecture or test matrix exists at this checkpoint. | Resume from disk; recreate any temporary tooling from pinned versions. |
+| C-002 canonical storage migration | Alembic `0003_storage_contract`, compatible run writes, vanilla PostgreSQL 16 gate, and migration fixtures. Three focused migration tests and the final eight-test API/PostgreSQL suite passed; four C-001 regressions also passed. Separate re-review signed off after two findings were fixed. See `docs/test-reports/C-002.md`. | Complete; C-003 unblocked, no CR |
 
 ## Current handoff
 
 G0-01 was published at be400d2. G0-02 through G0-05 are complete in the G0 closeout commit. The saved candidate includes architecture, API/domain contracts, migration/lifecycle notes, matrix and comparison fixtures. A separate reviewer inspected the fixes and reported no outstanding blocking inconsistencies in the reviewed candidate.
 
-C-001 added a redacted local-start preflight, focused bootstrap tests, CI coverage, and the documented operator entry point. A fresh temporary checkout failed safely without secrets, then built and served healthy web/API entry points after initialization. Evidence is recorded in `docs/test-reports/C-001.md`. C-002 and C-004 are now eligible.
+C-001 added a redacted local-start preflight, focused bootstrap tests, CI coverage, and the documented operator entry point. A fresh temporary checkout failed safely without secrets, then built and served healthy web/API entry points after initialization. Evidence is recorded in `docs/test-reports/C-001.md`.
+
+C-002 adopted the prototype storage through forward revision `0003_storage_contract`. It backfills and requires run project scope, enforces composite owner/project/conversation/message links, validates source-digest storage, and makes audit evidence immutable. Empty vanilla PostgreSQL and populated prototype upgrades are idempotent; a malformed legacy scope aborts without a partial schema. Evidence is recorded in `docs/test-reports/C-002.md`. C-003 is next in sequence; C-004 is also eligible.
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 
-The owner approved the freeze. Verified remote annotated tag g1-design-v2.0 resolves to 9edbcd4b9a142d107df219bc64bd6730b39689cd. C-002 is the next assigned task. Historical interruption entries above describe the earlier STATE-001 checkpoint.
+The owner approved the freeze. Verified remote annotated tag g1-design-v2.0 resolves to 9edbcd4b9a142d107df219bc64bd6730b39689cd. C-003 is the next assigned task under the approved execution plan. Historical interruption entries above describe the earlier STATE-001 checkpoint.
 
 ## Verification before owner approval
 

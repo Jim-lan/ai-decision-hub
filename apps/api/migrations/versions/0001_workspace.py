@@ -7,7 +7,6 @@ down_revision = None
 
 def upgrade():
     op.execute("""
-        CREATE EXTENSION IF NOT EXISTS vector;
         CREATE TABLE users (
             user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             login TEXT NOT NULL UNIQUE,

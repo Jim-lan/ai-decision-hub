@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting prerequisite evidence |
+| Status | Done |
 | Milestone | P0-M0 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-007, NFR-002, NFR-009, NFR-012 |
@@ -30,3 +30,7 @@ Services depend on the repository contract. Restore a verified pre-upgrade archi
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion evidence
+
+Completed November 10, 2026. Revision `0003_storage_contract`, the compatible run writer, vanilla PostgreSQL gate, and isolated migration regression fixtures satisfy this card without changing the frozen contract. Three focused migration tests, the final eight-test API/PostgreSQL suite, four C-001 regressions, bytecode compilation, Compose validation, and whitespace validation passed. A separate re-review signed off with no remaining blocking or major issue. See `docs/test-reports/C-002.md`. No Change Request was required. The next dependency-unblocked card is C-003; C-004 remains independently eligible.

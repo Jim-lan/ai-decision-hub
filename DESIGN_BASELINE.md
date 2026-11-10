@@ -29,3 +29,7 @@ The independent reviewer verified closure of the design blockers in [the freeze 
 New features enter the queue as a proposal with phase, affected FRs, alternatives, migration impact and tests. After freeze preserve the prior tag and record the approved CR and successor revision.
 
 The [owner review packet](docs/OWNER_DESIGN_REVIEW.md) consolidates the candidate and dated research. C-007, C-010 and C-011 carry the resulting qualification cases.
+
+## Implementation alignment
+
+C-002 adopted the prototype database through forward migration `0003_storage_contract` on November 10, 2026. The implementation adds the frozen same-scope relational invariants and append-only evidence enforcement, and removes the inherited pgvector requirement from greenfield migration while preserving existing installed extensions. No public contract changed and no Change Request was opened. Lifecycle expansion, audit metadata, export, and recovery remain with their assigned later cards; the G1 tag and P0/P1/P2 phase boundaries are unchanged.

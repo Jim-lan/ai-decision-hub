@@ -12,6 +12,8 @@ jobs:
         run: infra/scripts/init-local.sh
       - name: Verify local bootstrap preflight
         run: python3 -m unittest infra/tests/test_local_bootstrap.py
+      - name: Verify vanilla PostgreSQL migrations
+        run: docker compose --profile vanilla-test up --build --abort-on-container-exit --exit-code-from migrate-vanilla migrate-vanilla
       - name: Build and start the workspace
         run: docker compose up --build --wait web
       - name: Exercise the PostgreSQL integration suite

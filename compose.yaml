@@ -57,6 +57,28 @@ services:
     profiles: [test]
     depends_on:
       db: {condition: service_healthy}
+  db-vanilla:
+    image: postgres:16
+    profiles: [vanilla-test]
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_DB: aihub
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hub -d aihub"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate-vanilla:
+    <<: *api
+    profiles: [vanilla-test]
+    environment:
+      <<: *api-env
+      PGHOST: db-vanilla
+    depends_on:
+      db-vanilla: {condition: service_healthy}
+    command: ["/bin/sh", "-c", "alembic upgrade head && alembic upgrade head"]
 volumes:
   dbdata:
 secrets:

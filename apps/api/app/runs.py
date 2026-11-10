@@ -75,15 +75,16 @@ def start(data: Start, request: Request, idempotency_key: str = Header(min_lengt
         if existing["request_hash"] != fingerprint:
             raise HTTPException(409, "Key already used for a different run request")
         return summary(conn, run_record(conn, existing["run_id"], owner))
-    conversation(conn, data.conversation_id, owner, lock=True)
+    thread = conversation(conn, data.conversation_id, owner, lock=True)
     registry = conn.execute("SELECT * FROM provider_models WHERE provider_id='manual' AND status='enabled'").fetchone()
     if not registry or any(t.provider != registry["provider_id"] for t in data.model_targets):
         raise HTTPException(422, "Select an enabled manual target")
     message = insert_message(conn, data.conversation_id, data.question)
     row = conn.execute("""
-        INSERT INTO runs (conversation_id,message_id,owner_id,request_key,request_hash)
-        VALUES (%s,%s,%s,%s,%s) RETURNING run_id
-    """, (data.conversation_id, message["message_id"], owner, idempotency_key, fingerprint)).fetchone()
+        INSERT INTO runs (project_id,conversation_id,message_id,owner_id,request_key,request_hash)
+        VALUES (%s,%s,%s,%s,%s,%s) RETURNING run_id
+    """, (thread["project_id"], data.conversation_id, message["message_id"], owner,
+          idempotency_key, fingerprint)).fetchone()
     for target in data.model_targets:
         conn.execute("""
             INSERT INTO run_targets (run_id,provider,alias,model_id,gateway,routing_mode)
