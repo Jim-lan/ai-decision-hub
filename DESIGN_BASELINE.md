@@ -27,3 +27,5 @@ The independent reviewer verified closure of the design blockers in [the freeze 
 | DB-07 | Gemini is a candidate. Permitted account, capped price/quota and privacy conditions remain unverified. | Block live activation until verified. This does not block offline design or tests. |
 
 New features enter the queue as a proposal with phase, affected FRs, alternatives, migration impact and tests. After freeze preserve the prior tag and record the approved CR and successor revision.
+
+The [owner review packet](docs/OWNER_DESIGN_REVIEW.md) consolidates the candidate and dated research. C-007, C-010 and C-011 carry the resulting qualification cases.

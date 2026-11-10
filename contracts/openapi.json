@@ -217,6 +217,88 @@
         "title": "Original",
         "type": "object"
       },
+      "OriginalDetails": {
+        "properties": {
+          "acquisition_mode": {
+            "title": "Acquisition Mode",
+            "type": "string"
+          },
+          "actual_model_id": {
+            "title": "Actual Model Id",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "gateway": {
+            "title": "Gateway",
+            "type": "string"
+          },
+          "identity_confidence": {
+            "title": "Identity Confidence",
+            "type": "string"
+          },
+          "model_family": {
+            "title": "Model Family",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "requested_model_id": {
+            "title": "Requested Model Id",
+            "type": "string"
+          },
+          "response_id": {
+            "format": "uuid",
+            "title": "Response Id",
+            "type": "string"
+          },
+          "routing_mode": {
+            "title": "Routing Mode",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "source_hash": {
+            "title": "Source Hash",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_id",
+          "target_id",
+          "actual_model_id",
+          "model_family",
+          "identity_confidence",
+          "acquisition_mode",
+          "content",
+          "source_hash",
+          "created_at",
+          "run_id",
+          "provider",
+          "requested_model_id",
+          "gateway",
+          "routing_mode"
+        ],
+        "title": "OriginalDetails",
+        "type": "object"
+      },
       "Project": {
         "properties": {
           "created_at": {
@@ -240,6 +322,111 @@
           "created_at"
         ],
         "title": "Project",
+        "type": "object"
+      },
+      "Provider": {
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "gateway": {
+            "title": "Gateway",
+            "type": "string"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "provider_id": {
+            "title": "Provider Id",
+            "type": "string"
+          },
+          "routing_mode": {
+            "title": "Routing Mode",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider_id",
+          "alias",
+          "gateway",
+          "routing_mode",
+          "status",
+          "last_verified_at"
+        ],
+        "title": "Provider",
+        "type": "object"
+      },
+      "Run": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deadline": {
+            "format": "date-time",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "links": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Links",
+            "type": "object"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetStatus"
+            },
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "conversation_id",
+          "message_id",
+          "created_at",
+          "deadline",
+          "status",
+          "targets",
+          "links"
+        ],
+        "title": "Run",
         "type": "object"
       },
       "Start": {
@@ -274,6 +461,62 @@
         "title": "Start",
         "type": "object"
       },
+      "StoredOriginal": {
+        "properties": {
+          "acquisition_mode": {
+            "title": "Acquisition Mode",
+            "type": "string"
+          },
+          "actual_model_id": {
+            "title": "Actual Model Id",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "identity_confidence": {
+            "title": "Identity Confidence",
+            "type": "string"
+          },
+          "model_family": {
+            "title": "Model Family",
+            "type": "string"
+          },
+          "response_id": {
+            "format": "uuid",
+            "title": "Response Id",
+            "type": "string"
+          },
+          "source_hash": {
+            "title": "Source Hash",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_id",
+          "target_id",
+          "actual_model_id",
+          "model_family",
+          "identity_confidence",
+          "acquisition_mode",
+          "content",
+          "source_hash",
+          "created_at"
+        ],
+        "title": "StoredOriginal",
+        "type": "object"
+      },
       "Target": {
         "properties": {
           "model_id": {
@@ -295,6 +538,58 @@
           "model_id"
         ],
         "title": "Target",
+        "type": "object"
+      },
+      "TargetStatus": {
+        "properties": {
+          "gateway": {
+            "title": "Gateway",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "routing_mode": {
+            "title": "Routing Mode",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_id",
+          "provider",
+          "model_id",
+          "gateway",
+          "routing_mode",
+          "response_id",
+          "status"
+        ],
+        "title": "TargetStatus",
         "type": "object"
       },
       "ValidationError": {
@@ -609,7 +904,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Run"
+                  },
+                  "title": "Response List Runs V1 Conversations  Conversation Id  Runs Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -793,7 +1094,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Provider"
+                  },
+                  "title": "Response Providers V1 Providers Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -832,7 +1139,9 @@
           "202": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
               }
             },
             "description": "Successful Response"
@@ -870,7 +1179,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
               }
             },
             "description": "Successful Response"
@@ -918,7 +1229,9 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StoredOriginal"
+                }
               }
             },
             "description": "Successful Response"
@@ -956,7 +1269,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OriginalDetails"
+                  },
+                  "title": "Response Originals V1 Runs  Run Id  Responses Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"

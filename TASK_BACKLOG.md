@@ -17,3 +17,5 @@
 Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 is the first coding assignment after G1. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.
 
 When finishing a task, enter its result, evidence, blockers and next eligible task here or in the linked card, then update IMPLEMENTATION_STATUS.md. Keep DESIGN_BASELINE.md synchronized with gate and CR changes.
+
+Owner review preparation complete. Review the [consolidated design and task list](docs/OWNER_DESIGN_REVIEW.md) before approving G1.

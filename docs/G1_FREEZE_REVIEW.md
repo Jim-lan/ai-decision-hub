@@ -9,3 +9,5 @@ Independent review found early tasks depending on downstream acceptance evidence
 Design validation checks specification structure, traceability and dependency order. Product tests, hybrid provider evidence and recovery measurements are implementation and release obligations. Approval is pending owner review of this candidate.
 
 The independent reviewer rechecked all corrections after two finding passes and reported no remaining blockers within the review scope. Validation commands and outcomes are recorded in IMPLEMENTATION_STATUS.md.
+
+The [owner review packet](OWNER_DESIGN_REVIEW.md) includes the primary-source review, complete task sequence, prototype rehearsal results and remaining implementation gates.
