@@ -2,7 +2,7 @@
 
 A single-owner workspace for keeping questions and original model responses together across conversations. This first increment implements authenticated local projects, append-only history and manual comparisons. A run preserves the exact pasted answer, its hash, acquisition mode and user-declared model identity. A target can remain pending while other answers are available.
 
-[GitHub Project](https://github.com/users/Jim-lan/projects/1/views/1) · [49 implementation tasks](docs/requirements/tasks.md) · [Design baseline v1.2](docs/architecture/baseline-v1.2.md) · [HTTP contract](contracts/openapi.json)
+[GitHub Project](https://github.com/users/Jim-lan/projects/1/views/1) · [Frozen design](docs/architecture/baseline-v2.0.md) · [P0 implementation tasks](tasks/README.md) · [Target HTTP contract](docs/api/openapi.yaml)
 
 ## Start on your Mac
 
@@ -10,7 +10,7 @@ Use Docker Desktop with Compose, Bash and OpenSSL. From the repository root:
 
 ```sh
 infra/scripts/init-local.sh
-docker compose up -d --build --wait web
+infra/scripts/start-local.sh
 ```
 
 Open **http://localhost:8080** and enter the password from the local file **.secrets/owner_password**. The initializer generates it once. The account and password hash persist in PostgreSQL. Use the same hostname in your browser and in PUBLIC_BASE_URL so the origin check succeeds. For a different port, copy .env.example to .env and change both values.
@@ -28,6 +28,12 @@ diff contracts/openapi.json /tmp/hub-openapi.json
 ```
 
 Integration tests create and remove a uniquely named PostgreSQL database. CI also builds the React bundle and exercises login, project creation, concurrent history writes, run replay, manual import and restoration. The CI workflow includes a separate browser/recovery rehearsal with synthetic content.
+
+Run the foundation preflight tests without Docker:
+
+```sh
+python3 -m unittest infra/tests/test_local_bootstrap.py
+```
 
 ## Backup and restore
 

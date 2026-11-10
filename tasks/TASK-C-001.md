@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | In progress |
+| Status | Done |
 | Milestone | P0-M0 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-001, NFR-001, NFR-008 |
@@ -30,3 +30,7 @@ Compose and README are inputs to all subsequent tasks. Revert container/config c
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Evidence of completion
+
+Verified in [C-001 verification record](../docs/test-reports/C-001.md). No change request was required. C-002 and C-004 are eligible.

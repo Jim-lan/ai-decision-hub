@@ -1,6 +1,6 @@
 # Task backlog
 
-**Next action: qualify [C-001](tasks/TASK-C-001.md) under the [approved freeze](docs/G1_FREEZE_REVIEW.md).**
+**Next action: implement [C-002](tasks/TASK-C-002.md) under the approved freeze. C-004 is also eligible after C-001.**
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|
