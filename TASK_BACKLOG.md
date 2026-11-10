@@ -1,6 +1,6 @@
 # Task backlog
 
-**Next action: owner decision on the [reviewed G1 candidate](docs/G1_FREEZE_REVIEW.md).**
+**Next action: qualify [C-001](tasks/TASK-C-001.md) under the [approved freeze](docs/G1_FREEZE_REVIEW.md).**
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|
@@ -10,8 +10,8 @@
 | G0-03 · complete contracts | Design complete | docs/api/openapi.yaml, domain/event schemas and lifecycle/compatibility notes; run an OpenAPI validator and validate positive/negative fixtures. contracts/openapi.json describes the prototype only. |
 | G0-04 · close test links | Design complete | Complete docs/testing/test-matrix.md, account for every P0 test referenced by traceability and all allowed and denied transitions; audit card links. |
 | G0-05 · independent adversarial pass | Design complete | Fresh reviewer inspects versioned candidate, records severity, failure scenario and blocking verdict; resolve blockers and verify corrections. |
-| G1 · freeze | Pending owner decision | docs/G1_FREEZE_REVIEW.md, reviewed matrix, approved ADRs, validation evidence, exact approved SHA and annotated tag. |
-| G2/G3 · implement and integrate | Gated on G1 | Assign one card at a time to an efficient available coding model. Record tests and integration gate at every slice. |
+| G1 · freeze | Approved at g1-design-v2.0 | docs/G1_FREEZE_REVIEW.md, reviewed matrix, approved ADRs, validation evidence, exact approved SHA and annotated tag. |
+| G2/G3 · implement and integrate | C-001 in progress | Assign one card at a time to an efficient available coding model. Record tests and integration gate at every slice. |
 | G4 · release | Pending integration and owner acceptance | End-to-end decision, privacy/budget/partial failure, portable export, encrypted restore and rollback evidence. |
 
 Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 is the first coding assignment after G1. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.

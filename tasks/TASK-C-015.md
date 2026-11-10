@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting G1 or prerequisite evidence |
+| Status | Awaiting prerequisite evidence |
 | Milestone | P0-M4 |
-| Baseline reference | g1-design-v2.0 (usable only once the approved annotated tag exists) |
+| Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-017, NFR-001, NFR-002, NFR-003, NFR-009, NFR-016 |
 | Responsible role | Implementer, separate reviewer, CI integrator |
 | Dependencies | C-013, C-014 |

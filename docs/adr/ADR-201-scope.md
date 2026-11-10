@@ -1,6 +1,6 @@
 # ADR-201 · The first release is a comparison workspace
 
-**Status:** Proposed for G1; owner signature pending. **Sources:** Governance §2–3, §7; v1.2 §3, §15; v1.3 §6; v1.4 §11–12.
+**Status:** Approved under g1-design-v2.0. **Sources:** Governance §2–3, §7; v1.2 §3, §15; v1.3 §6; v1.4 §11–12.
 
 **Decision.** Implement a single-owner, local, asynchronous question → independent originals → evidence-aware comparison → explicit owner decision flow. Manual import is a first-class route; reopening, basic search, explicitly selected same-project history, export and restore are in P0. Reserve MemoryPort, TaskPort, AgentRegistryPort and RemoteAgentPort at the domain boundary; there are no P0 implementations, schemas for speculative future records, or HTTP resources for these capabilities.
 

@@ -1,8 +1,8 @@
 # Requirement traceability · ADH v2.0 G1 candidate
 
-**D-002 · Proposed for owner approval.** All P0 cases are specified, pending implementation and execution. A case has a positive and a negative assertion in the [test matrix](../testing/test-matrix.md). Each named C-ticket owns implementation within its scope. C-014 collects integrated evidence. Future rows name the responsible domain and its admission test. The owner assigns a future ticket only after approving that phase. No future table, endpoint or service is required to reserve a port.
+**D-002 · Approved under g1-design-v2.0.** All P0 cases are specified, pending implementation and execution. A case has a positive and a negative assertion in the [test matrix](../testing/test-matrix.md). Each named C-ticket owns implementation within its scope. C-014 collects integrated evidence. Future rows name the responsible domain and its admission test. The owner assigns a future ticket only after approving that phase. No future table, endpoint or service is required to reserve a port.
 
-The first column of each catalogue preserves the source ID. The v1.2 functional priorities are original classifications. Its non-functional catalogue has no separate priority per row. The phase column records the candidate disposition. The [architecture](../architecture/baseline-v2.0.md), [API](../api/openapi.yaml) and [conflict log](conflict-log.md) carry the design and unresolved decisions. Owner signature, date and frozen Git reference are pending in the [freeze review](../G1_FREEZE_REVIEW.md).
+The first column of each catalogue preserves the source ID. The v1.2 functional priorities are original classifications. Its non-functional catalogue has no separate priority per row. The phase column records the candidate disposition. The [architecture](../architecture/baseline-v2.0.md), [API](../api/openapi.yaml) and [conflict log](conflict-log.md) carry the design and unresolved decisions. The owner decision, date and frozen Git reference are recorded in the [freeze review](../G1_FREEZE_REVIEW.md).
 
 ## Functional catalogue
 

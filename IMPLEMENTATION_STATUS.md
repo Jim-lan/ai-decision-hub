@@ -1,6 +1,6 @@
 # Implementation status
 
-Checkpoint STATE-001 · 2026-11-09 · G0 design review in progress. G1 has no approved tag. No G2 implementation ticket has passed its gate.
+G1 approved · 2026-11-09 · Implementation started with C-001.
 
 ## Recovery
 
@@ -22,7 +22,7 @@ G0-01 was published at be400d2. G0-02 through G0-05 are complete in the G0 close
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 
-Next action: owner decision on docs/G1_FREEZE_REVIEW.md. After approval, tag the reviewed revision and begin C-001 using an efficient coding model. Historical interruption entries above describe the earlier STATE-001 checkpoint.
+The owner approved the freeze. Verified remote annotated tag g1-design-v2.0 resolves to 9edbcd4b9a142d107df219bc64bd6730b39689cd. GPT-6.1 Sol is assigned C-001. Historical interruption entries above describe the earlier STATE-001 checkpoint.
 
 ## Verification before owner approval
 

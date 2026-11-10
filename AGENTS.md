@@ -1,7 +1,7 @@
 # AGENTS.md — Personal AI Decision Hub
 
 > Repository-wide engineering instructions for Codex and other coding agents.
-> Baseline: Governance v2.0, proposed until Gate G1 is approved. Language: English only.
+> Baseline: Governance v2.0, frozen at g1-design-v2.0. Language: English only.
 > This file belongs at the Git repository root. Do not put it inside `docs/`.
 
 ## 1. Mission and priority

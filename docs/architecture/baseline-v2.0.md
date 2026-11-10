@@ -1,6 +1,6 @@
 # Personal AI Decision Hub · G1 architecture candidate
 
-**ADH-v2.0 · G0-02 · proposed, unsigned.** Proposed tag `g1-design-v2.0`. The owner approves P0 scope, tradeoffs and the freeze after an independent review. Live access and spending have a separate approval boundary. The governance document governs gates. The OpenAPI and companion schemas define wire shapes. This document defines component ownership, cross-record invariants and behavior. [Governance](../IMPLEMENTATION_GOVERNANCE_AND_DESIGN_BASELINE_v2.0.md) · [Contract](../api/openapi.yaml) · [Requirement matrix](../requirements/traceability.md) · [Decisions and conflicts](../requirements/conflict-log.md)
+**ADH-v2.0 · G0-02 · approved.** Frozen tag `g1-design-v2.0`. The owner approves P0 scope, tradeoffs and the freeze after an independent review. Live access and spending have a separate approval boundary. The governance document governs gates. The OpenAPI and companion schemas define wire shapes. This document defines component ownership, cross-record invariants and behavior. [Governance](../IMPLEMENTATION_GOVERNANCE_AND_DESIGN_BASELINE_v2.0.md) · [Contract](../api/openapi.yaml) · [Requirement matrix](../requirements/traceability.md) · [Decisions and conflicts](../requirements/conflict-log.md)
 
 ## 1. First usable release
 

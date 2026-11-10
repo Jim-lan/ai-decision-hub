@@ -1,6 +1,6 @@
 # ADR-202 · Domain transactions own truth; workflow checkpoints hold references
 
-**Status:** Proposed for G1; owner signature pending. **Sources:** Governance §4.1–4.4; v1.2 §4, §6, §8.1; v1.4 §8.
+**Status:** Approved under g1-design-v2.0. **Sources:** Governance §4.1–4.4; v1.2 §4, §6, §8.1; v1.4 §8.
 
 **Decision.** Use React and FastAPI over one modular monolith with a separate worker process. PostgreSQL owns canonical data and versioned progress events. The API transaction commits the question, run, targets and initial work/event together. The worker leases work and invokes LangGraph using ID-only checkpoint state, fenced attempts and compare-and-set writes. Recovery reads the domain tables before resuming. Raw content remains readable without the graph; progress is a projection of durable events. Use scoped composite foreign keys and resource joins. Apply Alembic expansions after backup, backfill/verify, switch readers, then retire obsolete fields only after the compatibility window.
 

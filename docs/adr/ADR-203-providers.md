@@ -1,6 +1,6 @@
 # ADR-203 · Independent first-round inputs and honest identity
 
-**Status:** Proposed for G1; owner signature pending. **Sources:** v1.2 §2.1–2.2, §8.2–8.3, §9; Governance §3, §4.2; historical local ADR 0001.
+**Status:** Approved under g1-design-v2.0. **Sources:** v1.2 §2.1–2.2, §8.2–8.3, §9; Governance §3, §4.2; historical local ADR 0001.
 
 **Decision.** Manual import first, then one eligible official API adapter. Gemini is a candidate, not an entitlement. Use ProviderPort with a native documented transport or compatible SDK inside the adapter; an abstraction library is not an entitlement, price ceiling or mandatory new service. Resolve registry selections and persist per-attempt snapshots: application, gateway, requested and returned provider/model, family, routing, confidence, verification date and acquisition path. Never substitute an alias for missing returned identity. Keep declared manual labels distinct from API-attested identity. The app cannot attest to independent prompts used in an external consumer chat.
 

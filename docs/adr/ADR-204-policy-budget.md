@@ -1,6 +1,6 @@
 # ADR-204 · Deterministic authorization and reservations precede every network call
 
-**Status:** Proposed for G1; owner signature pending. **Sources:** Governance §3–4, §7; v1.2 FR-013, FR-015, FR-018, NFR-004–006, NFR-013, §9.3, §10.
+**Status:** Approved under g1-design-v2.0. **Sources:** Governance §3–4, §7; v1.2 FR-013, FR-015, FR-018, NFR-004–006, NFR-013, §9.3, §10.
 
 **Decision.** Login and project ownership precede resource access. Check sensitivity, approved recipient, current registry entitlement, price/quota freshness and a bounded request before calling. Project history is opt-in per source; redact per destination, deny if the core question cannot be sent safely. Revalidate on dispatch after queueing. Restrict outbound destinations to configured official HTTPS endpoints; never follow model-provided URLs or silently enable an adapter.
 
