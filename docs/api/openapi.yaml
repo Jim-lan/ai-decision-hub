@@ -1,0 +1,2342 @@
+openapi: 3.1.0
+info:
+  title: Personal AI Decision Hub
+  version: 0.2.0
+  description: G1 candidate for the P0 /v1 surface. Authenticate using the same-origin owner session.
+    Require authorization through the project on every scoped read, mutation and idempotent replay. Foreign
+    or deleted resources return the same 404 as missing resources. Errors never echo secrets, prompts,
+    search terms or raw exceptions. Clients ignore additional response fields. See lifecycle.md and adoption.md
+    for transactional and compatibility rules.
+security:
+- ownerSession: []
+paths:
+  /v1/health:
+    get:
+      operationId: readHealth
+      summary: Check local API and database readiness
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      security: []
+  /v1/auth/login:
+    post:
+      operationId: login
+      summary: Establish a revocable owner session
+      responses:
+        '204':
+          description: Success, empty body
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            Set-Cookie:
+              description: Issue or expire the hub_session cookie. HttpOnly, SameSite=Strict, Secure on
+                HTTPS.
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '422':
+          $ref: '#/components/responses/E422'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      security: []
+      description: Session expires after 12 hours. Rate-limit invalid attempts and never log credentials.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+  /v1/auth/session:
+    get:
+      operationId: readSession
+      summary: Read the signed-in owner ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '401':
+          $ref: '#/components/responses/E401'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the session and expire the cookie
+      responses:
+        '204':
+          description: Success, empty body
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            Set-Cookie:
+              description: Issue or expire the hub_session cookie. HttpOnly, SameSite=Strict, Secure on
+                HTTPS.
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+  /v1/projects:
+    get:
+      operationId: listProjects
+      summary: List owned projects
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '401':
+          $ref: '#/components/responses/E401'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+    post:
+      operationId: createProject
+      summary: Create an owned project
+      responses:
+        '201':
+          description: Created or exact original replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Named'
+  /v1/projects/{project_id}:
+    get:
+      operationId: readProject
+      summary: Read an owned project
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/projects/{project_id}/conversations:
+    get:
+      operationId: listConversations
+      summary: List conversations within the owned project
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/conversations:
+    post:
+      operationId: createConversation
+      summary: Create a conversation within an owned project
+      responses:
+        '201':
+          description: Created or exact original replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewConversation'
+  /v1/conversations/{conversation_id}:
+    get:
+      operationId: readConversation
+      summary: Read a scoped conversation
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/conversations/{conversation_id}/messages:
+    get:
+      operationId: listMessages
+      summary: Page through ordered message history
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 1024
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      description: Cursor binds to conversation and sequence. An invalid cursor returns 400.
+    post:
+      operationId: appendMessage
+      summary: Append an immutable owner message
+      responses:
+        '201':
+          description: Created or exact original replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      description: Append under the conversation lock. Allocate a unique increasing sequence, preserving
+        exact submitted text.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewMessage'
+  /v1/projects/{project_id}/history:
+    get:
+      operationId: searchHistory
+      summary: Search messages and decisions in an owned project
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchPage'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 160
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 1024
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      description: Case-insensitive literal substring of message, decision choice or rationale. Match
+        within the owned project only. Stable ascending (created_at, kind, resource_id). Cursor binds
+        project, query and keyset position. q is sensitive and must be excluded from all access logs.
+  /v1/providers:
+    get:
+      operationId: listProviders
+      summary: Read the redacted registry and current target availability
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '401':
+          $ref: '#/components/responses/E401'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      description: Disabled targets remain visible. No account secrets or credentials appear here.
+  /v1/runs:
+    post:
+      operationId: createRun
+      summary: Submit an independent run
+      responses:
+        '202':
+          description: Accepted, including exact submission replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '422':
+          $ref: '#/components/responses/E422'
+        '429':
+          $ref: '#/components/responses/E429'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description: Owner-scoped opaque key, also scoped to the operation.
+      description: Authenticate, authorize the conversation and every selected source; check distinct
+        enabled aliases, bounded request, policy, price and quota; reserve aggregate worst case. Commit
+        question, run, targets, key and reservations once, before dispatch. Replay an authorized equal
+        normalized request without reserving again. Mismatched key reuse returns 409. An unavailable registry
+        alias returns 422, forbidden egress 403, and aggregate cap/quota refusal 429. No partial business
+        rows on refused admission. Deadline is created_at plus deadline_seconds in UTC; deadline applies
+        to collection. Local synthesis uses its own bounded watchdog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Start'
+  /v1/runs/{run_id}:
+    get:
+      operationId: readRun
+      summary: Read the durable run and all target outcomes
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/conversations/{conversation_id}/runs:
+    get:
+      operationId: listRuns
+      summary: List runs belonging to the conversation
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Run'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/runs/{run_id}/responses:
+    get:
+      operationId: listOriginals
+      summary: Read included and late-excluded originals
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OriginalDetails'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      description: Order by created_at, response_id. Missing/failed targets remain visible in readRun.
+        A late official receipt carries inclusion=late_excluded and never revises a published report.
+  /v1/runs/{run_id}/manual-responses:
+    post:
+      operationId: importManualOriginal
+      summary: Store one pasted original for a participating manual target
+      responses:
+        '201':
+          description: Created or exact original replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OriginalDetails'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      description: Unique (run_id,target_id). Lock run then target; exact replay of content and declared
+        metadata returns the same original and 201 at any time. A different original, a closed target/run,
+        an API target or arrival on/after deadline returns 409. Foreign target returns 404. Manual slots enter awaiting_manual at admission and accept immediate paste before worker startup.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Original'
+  /v1/runs/{run_id}/cancel:
+    post:
+      operationId: cancelRun
+      summary: Stop accepting work for a run
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      description: No body. Idempotent by run ID. Under run lock record cancellation and settle remaining
+        target states; stop future dispatch. Known sends can still be billed. Repeated cancellation returns
+        the same cancelled run. A different terminal result returns 409.
+  /v1/runs/{run_id}/events:
+    get:
+      operationId: pollRunEvents
+      summary: Poll ordered durable progress events after a sequence
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Events'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: after
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      description: Read sequence > after. Return next_after equal to the last item sequence or the supplied
+        after for an empty page. Poll again after one second while nonterminal; drain through the terminal
+        event. Reconnect from last applied sequence and deduplicate by event_id. No SSE required.
+  /v1/runs/{run_id}/report:
+    get:
+      operationId: readReport
+      summary: Read the published immutable comparison
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      description: Return 409 if no report is published, including cancelled or failed runs. Write report,
+        completion state and events atomically.
+  /v1/context-manifests/{snapshot_id}:
+    get:
+      operationId: readSnapshot
+      summary: Read scoped outbound snapshot metadata
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: ./domain.schema.json#/$defs/ContextSnapshot
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: snapshot_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      description: Return metadata and allowed source IDs only. Manual deliveries have no attested transmitted
+        snapshot. Never expose suppressed source IDs, prompts, keys or transport headers.
+  /v1/decisions:
+    post:
+      operationId: saveDecision
+      summary: Record the owner’s explicit choice against a published comparison
+      responses:
+        '201':
+          description: Created or exact original replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '403':
+          $ref: '#/components/responses/E403'
+        '404':
+          $ref: '#/components/responses/E404'
+        '409':
+          $ref: '#/components/responses/E409'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: Origin
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: Must match configured public origin exactly, including for login and CLI-originated
+          HTTP writes.
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description: Owner-scoped opaque key, also scoped to the operation.
+      description: Require a visible run and report matching one another. Unknown/inaccessible source
+        returns 404, visible mismatched pair or unpublished report returns 409. Rationale is optional.
+        Exact replay returns the same decision with 201. No recommendation automatically creates a decision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewDecision'
+  /v1/decisions/{decision_id}:
+    get:
+      operationId: readDecision
+      summary: Read an owner decision and its evidence identifiers
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: decision_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /v1/usage:
+    get:
+      operationId: readUsage
+      summary: Read owner UTC day/month accounting and optional run totals
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usage'
+          headers:
+            X-Trace-ID:
+              $ref: '#/components/headers/TraceId'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/E400'
+        '401':
+          $ref: '#/components/responses/E401'
+        '404':
+          $ref: '#/components/responses/E404'
+        '422':
+          $ref: '#/components/responses/E422'
+        '500':
+          $ref: '#/components/responses/E500'
+        '503':
+          $ref: '#/components/responses/E503'
+      parameters:
+      - name: run_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      description: If run_id is supplied, scope it to this owner or return 404. Reserve, held unknown
+        and settled are mutually exclusive nonnegative balances. Use null for unavailable measured tokens.
+components:
+  securitySchemes:
+    ownerSession:
+      type: apiKey
+      in: cookie
+      name: hub_session
+  headers:
+    TraceId:
+      schema:
+        type: string
+        format: uuid
+    NoStore:
+      schema:
+        type: string
+        const: no-store
+  responses:
+    E400:
+      description: Malformed request or invalid cursor
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E401:
+      description: Missing/expired session or invalid login
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E403:
+      description: Forbidden origin or outbound policy denial
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E404:
+      description: Unknown or inaccessible resource
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E409:
+      description: Conflicting idempotency payload, closed state, immutable original or report unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E422:
+      description: Invalid input or unavailable target selection
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E429:
+      description: Hard budget, quota or login throttle
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E500:
+      description: Unexpected internal failure
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+    E503:
+      description: Temporary service or database failure
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Trace-ID:
+          $ref: '#/components/headers/TraceId'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+  schemas:
+    Problem:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - title
+      - status
+      - error_code
+      - trace_id
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        error_code:
+          type: string
+          enum:
+          - bad_request
+          - unauthorized
+          - forbidden
+          - not_found
+          - conflict
+          - invalid_input
+          - budget_exceeded
+          - quota_exceeded
+          - rate_limited
+          - unavailable
+          - internal_error
+        trace_id:
+          type: string
+          format: uuid
+    Login:
+      type: object
+      additionalProperties: false
+      required:
+      - password
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
+          writeOnly: true
+    Session:
+      type: object
+      additionalProperties: false
+      required:
+      - owner_id
+      properties:
+        owner_id:
+          type: string
+          format: uuid
+    Health:
+      type: object
+      additionalProperties: false
+      required:
+      - status
+      properties:
+        status:
+          type: string
+          const: ok
+    Named:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+    NewConversation:
+      type: object
+      additionalProperties: false
+      required:
+      - project_id
+      - title
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+    NewMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+    Project:
+      type: object
+      additionalProperties: false
+      required:
+      - project_id
+      - name
+      - created_at
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+    Conversation:
+      type: object
+      additionalProperties: false
+      required:
+      - conversation_id
+      - project_id
+      - title
+      - created_at
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+    Message:
+      type: object
+      additionalProperties: false
+      required:
+      - message_id
+      - conversation_id
+      - sequence
+      - role
+      - content
+      - source_hash
+      - created_at
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+        content:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+        source_hash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+    History:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+    Provider:
+      type: object
+      additionalProperties: false
+      required:
+      - provider_id
+      - alias
+      - gateway
+      - routing_mode
+      - status
+      - last_verified_at
+      - acquisition_mode
+      - app_name
+      - configured_model_id
+      - model_family
+      - capabilities
+      - pricing_status
+      - privacy_profile
+      - pricing_version
+      properties:
+        provider_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        alias:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        gateway:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        routing_mode:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        status:
+          type: string
+          enum:
+          - enabled
+          - disabled
+        last_verified_at:
+          anyOf:
+          - type: string
+            format: date-time
+            pattern: Z$
+            description: UTC instant in RFC 3339 format.
+          - type: 'null'
+        acquisition_mode:
+          type: string
+          enum:
+          - official_api
+          - manual
+        app_name:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        configured_model_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        model_family:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+            - text
+            - manual_import
+          uniqueItems: true
+        pricing_status:
+          type: string
+          enum:
+          - verified_free
+          - verified_priced
+          - unknown
+          - manual
+        privacy_profile:
+          type: string
+          enum:
+          - local_only
+          - allowlisted
+          - blocked
+        pricing_version:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+    Target:
+      type: object
+      additionalProperties: false
+      required:
+      - provider
+      - model_id
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 100
+        model_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+    Start:
+      type: object
+      additionalProperties: false
+      required:
+      - conversation_id
+      - question
+      - model_targets
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        question:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+        model_targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Target'
+          minItems: 1
+          maxItems: 12
+          uniqueItems: true
+        context_message_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 32
+          uniqueItems: true
+          default: []
+        deadline_seconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+          default: 86400
+        max_cost_microusd:
+          type: integer
+          minimum: 0
+          description: Integer millionths of one US dollar. Round reservations up.
+      description: Select 2–12 distinct targets for comparison. A single manual target is supported for
+        original collection. Compare target identity by provider plus trimmed, case-folded model ID. Context
+        uses the supplied order, and defaults to the question alone. A supplied run cap may only lower
+        the operator cap.
+      allOf:
+      - if:
+          properties:
+            model_targets:
+              maxItems: 1
+        then:
+          properties:
+            model_targets:
+              items:
+                properties:
+                  provider:
+                    const: manual
+    Original:
+      type: object
+      additionalProperties: false
+      required:
+      - target_id
+      - content
+      properties:
+        target_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+        model_family:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+          default: unknown
+        declared_app:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        declared_model_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+      description: Store UTF-8 content exactly, including whitespace, line endings and Unicode. Untrusted
+        labels are declarations only. An omitted declared model defaults to the selected label for compatibility.
+    OriginalDetails:
+      type: object
+      additionalProperties: false
+      required:
+      - response_id
+      - target_id
+      - actual_model_id
+      - model_family
+      - identity_confidence
+      - acquisition_mode
+      - content
+      - source_hash
+      - created_at
+      - run_id
+      - provider
+      - requested_model_id
+      - gateway
+      - routing_mode
+      - resolved_provider_id
+      - resolved_model_id
+      - model_version
+      - declared_app
+      - declared_model_id
+      - elapsed_ms
+      - input_tokens
+      - output_tokens
+      - actual_cost_microusd
+      - attempt_no
+      - context_snapshot_id
+      - inclusion
+      properties:
+        response_id:
+          type: string
+          format: uuid
+        target_id:
+          type: string
+          format: uuid
+        actual_model_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        model_family:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        identity_confidence:
+          type: string
+          enum:
+          - provider_reported
+          - user_declared
+          - unknown
+        acquisition_mode:
+          type: string
+          enum:
+          - official_api
+          - manual
+        content:
+          type: string
+          minLength: 1
+        source_hash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+        run_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        requested_model_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        gateway:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        routing_mode:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        resolved_provider_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        resolved_model_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        model_version:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        declared_app:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        declared_model_id:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          - type: 'null'
+        elapsed_ms:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        input_tokens:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        output_tokens:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        actual_cost_microusd:
+          anyOf:
+          - type: integer
+            minimum: 0
+            description: Integer millionths of one US dollar. Round reservations up.
+          - type: 'null'
+        attempt_no:
+          type: integer
+          minimum: 0
+        context_snapshot_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        inclusion:
+          type: string
+          enum:
+          - included
+          - late_excluded
+      description: actual_model_id is the legacy display label. Verified resolution is exposed by resolved_*;
+        for manual or opaque routing leave these nullable unless positively attested. Group only eligible
+        attested families. SHA-256 hashes the exact UTF-8 content. Manual elapsed/usage and unavailable
+        cost are null; attempt_no is 0 for manual.
+    TargetStatus:
+      type: object
+      additionalProperties: false
+      required:
+      - target_id
+      - provider
+      - model_id
+      - gateway
+      - routing_mode
+      - response_id
+      - status
+      - state
+      - attempt_no
+      - error_code
+      - context_snapshot_id
+      properties:
+        target_id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        model_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        gateway:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        routing_mode:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: \S
+        response_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        status:
+          type: string
+          enum:
+          - awaiting_manual
+          - missing
+          - complete
+          - pending
+          - running
+        state:
+          $ref: ./domain.schema.json#/$defs/TargetState
+        attempt_no:
+          type: integer
+          minimum: 0
+        error_code:
+          anyOf:
+          - $ref: ./domain.schema.json#/$defs/FailureCode
+          - type: 'null'
+        context_snapshot_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+    Run:
+      type: object
+      additionalProperties: false
+      required:
+      - run_id
+      - project_id
+      - conversation_id
+      - message_id
+      - created_at
+      - deadline
+      - status
+      - state
+      - targets
+      - links
+      - comparison_id
+      - error_code
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        message_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+        deadline:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+        status:
+          type: string
+          enum:
+          - awaiting_manual
+          - complete
+          - partial_complete
+          - failed
+          - running
+        state:
+          $ref: ./domain.schema.json#/$defs/RunState
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetStatus'
+          minItems: 1
+          maxItems: 12
+        links:
+          type: object
+          additionalProperties: false
+          required:
+          - status
+          - responses
+          - report
+          - events
+          properties:
+            status:
+              type: string
+              format: uri-reference
+            responses:
+              type: string
+              format: uri-reference
+            report:
+              type: string
+              format: uri-reference
+            events:
+              type: string
+              format: uri-reference
+        comparison_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        error_code:
+          anyOf:
+          - $ref: ./domain.schema.json#/$defs/FailureCode
+          - type: 'null'
+    Events:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - next_after
+      properties:
+        items:
+          type: array
+          items:
+            $ref: ./domain.schema.json#/$defs/RunEvent
+        next_after:
+          type: integer
+          minimum: 0
+    SearchHit:
+      type: object
+      additionalProperties: false
+      required:
+      - project_id
+      - conversation_id
+      - kind
+      - resource_id
+      - run_id
+      - excerpt
+      - created_at
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - message
+          - decision
+        resource_id:
+          type: string
+          format: uuid
+        run_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        excerpt:
+          type: string
+          maxLength: 240
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+    SearchPage:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchHit'
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+    Span:
+      type: object
+      additionalProperties: false
+      required:
+      - response_id
+      - start
+      - end
+      properties:
+        response_id:
+          type: string
+          format: uuid
+        start:
+          type: integer
+          minimum: 0
+        end:
+          type: integer
+          minimum: 1
+      description: Zero-based half-open Unicode code-point offsets into immutable original content. Enforce
+        0 <= start < end <= len(content).
+    Claim:
+      type: object
+      additionalProperties: false
+      required:
+      - claim_id
+      - text
+      - source
+      - evidence_grade
+      - cited_text_span
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          minLength: 1
+        source:
+          $ref: '#/components/schemas/Span'
+        evidence_grade:
+          type: string
+          enum:
+          - model_asserted
+          - source_cited
+          - unknown
+        cited_text_span:
+          anyOf:
+          - $ref: '#/components/schemas/Span'
+          - type: 'null'
+    Finding:
+      type: object
+      additionalProperties: false
+      required:
+      - summary
+      - claim_ids
+      properties:
+        summary:
+          type: string
+          minLength: 1
+        claim_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          uniqueItems: true
+    Coverage:
+      type: object
+      additionalProperties: false
+      required:
+      - requested
+      - succeeded_target_ids
+      - missing_target_ids
+      - verified_independent_families
+      properties:
+        requested:
+          type: integer
+          minimum: 1
+        succeeded_target_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+        missing_target_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+        verified_independent_families:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 160
+            pattern: \S
+          uniqueItems: true
+    Recommendation:
+      type: object
+      additionalProperties: false
+      required:
+      - text
+      - assumptions
+      - claim_ids
+      properties:
+        text:
+          type: string
+          minLength: 1
+        assumptions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+        claim_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          uniqueItems: true
+    Report:
+      type: object
+      additionalProperties: false
+      required:
+      - schema_version
+      - comparison_id
+      - run_id
+      - version
+      - created_at
+      - state
+      - coverage
+      - claims
+      - agreements
+      - disagreements
+      - uncertainties
+      - limitations
+      - context_comparability
+      - recommendation
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+        comparison_id:
+          type: string
+          format: uuid
+        run_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+        state:
+          type: string
+          enum:
+          - completed
+          - completed_partial
+        coverage:
+          $ref: '#/components/schemas/Coverage'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/Claim'
+        agreements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+        disagreements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+        uncertainties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+        limitations:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        context_comparability:
+          type: string
+          enum:
+          - same
+          - different
+          - unknown
+        recommendation:
+          anyOf:
+          - $ref: '#/components/schemas/Recommendation'
+          - type: 'null'
+      description: One immutable version 1 for a completed run. Every claim points to an original in the
+        run; every finding references report claims. Agreement/disagreement requires positions from at
+        least two originals; family counts exclude manual, unauthenticated and aliases of the same family.
+        Unknown/manual context yields unknown unless known outbound differences already prove different.
+        Nullable recommendation is explicit abstention with reason in limitations.
+    NewDecision:
+      type: object
+      additionalProperties: false
+      required:
+      - run_id
+      - comparison_id
+      - choice
+      properties:
+        run_id:
+          type: string
+          format: uuid
+        comparison_id:
+          type: string
+          format: uuid
+        choice:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+    Decision:
+      type: object
+      additionalProperties: false
+      required:
+      - schema_version
+      - decision_id
+      - project_id
+      - conversation_id
+      - run_id
+      - comparison_id
+      - owner_id
+      - choice
+      - rationale
+      - created_at
+      properties:
+        schema_version:
+          type: integer
+          const: 1
+        decision_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        run_id:
+          type: string
+          format: uuid
+        comparison_id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        choice:
+          type: string
+          minLength: 1
+          maxLength: 64000
+          pattern: \S
+        rationale:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 64000
+            pattern: \S
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+    UsageWindow:
+      type: object
+      additionalProperties: false
+      required:
+      - cap_microusd
+      - reserved_microusd
+      - held_microusd
+      - settled_microusd
+      - input_tokens
+      - output_tokens
+      properties:
+        cap_microusd:
+          type: integer
+          minimum: 0
+          description: Integer millionths of one US dollar. Round reservations up.
+        reserved_microusd:
+          type: integer
+          minimum: 0
+          description: Integer millionths of one US dollar. Round reservations up.
+        held_microusd:
+          type: integer
+          minimum: 0
+          description: Integer millionths of one US dollar. Round reservations up.
+        settled_microusd:
+          type: integer
+          minimum: 0
+          description: Integer millionths of one US dollar. Round reservations up.
+        input_tokens:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        output_tokens:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+    Usage:
+      type: object
+      additionalProperties: false
+      required:
+      - currency
+      - as_of
+      - day
+      - month
+      - run
+      properties:
+        currency:
+          type: string
+          const: USD
+        as_of:
+          type: string
+          format: date-time
+          pattern: Z$
+          description: UTC instant in RFC 3339 format.
+        day:
+          $ref: '#/components/schemas/UsageWindow'
+        month:
+          $ref: '#/components/schemas/UsageWindow'
+        run:
+          anyOf:
+          - $ref: '#/components/schemas/UsageWindow'
+          - type: 'null'

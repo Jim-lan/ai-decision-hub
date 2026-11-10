@@ -21,7 +21,7 @@ Use the tagged traceability matrix, architecture, OpenAPI, test matrix and merge
 
 ## Acceptance and verification
 
-Corrupt export, foreign reference, missing recovery key and an existing restore destination fail safely. Restored instance reproduces UUIDs, originals, report and decision through the browser. Run the named matrix cases, isolated unit and contract checks for modified ports, and real PostgreSQL integration for durable changes. Re-run the preceding milestone's vertical slice. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
+Corrupt export, foreign reference, missing recovery key and an existing restore destination fail safely. Restored instance reproduces UUIDs, originals, report and decision through the browser. Run the assertions in the named matrix cases that exercise this card’s deliverables, using fixtures for later dependencies. Run isolated unit and contract checks for modified ports and PostgreSQL integration for durable changes. At each milestone rerun the preceding completed slice. The full cross-feature cases remain open until their integration checkpoint. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
 
 ## Integration and recovery
 

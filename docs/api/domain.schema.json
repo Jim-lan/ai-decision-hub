@@ -1,0 +1,681 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Decision Hub internal P0 records v1",
+  "$defs": {
+    "RunState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "awaiting_manual",
+        "synthesizing",
+        "completed",
+        "completed_partial",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "TargetState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_flight",
+        "awaiting_manual",
+        "blocked",
+        "timed_out",
+        "cancelled",
+        "succeeded",
+        "failed",
+        "delivery_unknown"
+      ]
+    },
+    "FailureCode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "policy_denied",
+        "budget_denied",
+        "quota_denied",
+        "timeout",
+        "cancelled",
+        "provider_error",
+        "delivery_unknown",
+        "invalid_response",
+        "internal_error"
+      ]
+    },
+    "RunEvent": {
+      "description": "Owner-scoped polling record. Append in the same transaction as its state change. Sequence starts at 1 per run and increases under its row lock. Subject text never enters the event stream.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "created_at",
+            "event_id",
+            "run_id",
+            "sequence",
+            "trace_id",
+            "kind",
+            "previous",
+            "state"
+          ],
+          "properties": {
+            "schema_version": {
+              "type": "integer",
+              "const": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$",
+              "description": "UTC instant in RFC 3339 format."
+            },
+            "event_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "run_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "trace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "kind": {
+              "type": "string",
+              "const": "run_state"
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RunState"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "$ref": "#/$defs/RunState"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "created_at",
+            "event_id",
+            "run_id",
+            "sequence",
+            "trace_id",
+            "kind",
+            "target_id",
+            "previous",
+            "state",
+            "reason"
+          ],
+          "properties": {
+            "schema_version": {
+              "type": "integer",
+              "const": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$",
+              "description": "UTC instant in RFC 3339 format."
+            },
+            "event_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "run_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "trace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "kind": {
+              "type": "string",
+              "const": "target_state"
+            },
+            "target_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TargetState"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "$ref": "#/$defs/TargetState"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/FailureCode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "created_at",
+            "event_id",
+            "run_id",
+            "sequence",
+            "trace_id",
+            "kind",
+            "target_id",
+            "response_id"
+          ],
+          "properties": {
+            "schema_version": {
+              "type": "integer",
+              "const": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$",
+              "description": "UTC instant in RFC 3339 format."
+            },
+            "event_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "run_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "trace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "kind": {
+              "type": "string",
+              "const": "original_saved"
+            },
+            "target_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "response_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "created_at",
+            "event_id",
+            "run_id",
+            "sequence",
+            "trace_id",
+            "kind",
+            "comparison_id",
+            "version"
+          ],
+          "properties": {
+            "schema_version": {
+              "type": "integer",
+              "const": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$",
+              "description": "UTC instant in RFC 3339 format."
+            },
+            "event_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "run_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "trace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "kind": {
+              "type": "string",
+              "const": "report_published"
+            },
+            "comparison_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "ContextSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "created_at",
+        "snapshot_id",
+        "project_id",
+        "run_id",
+        "target_id",
+        "policy_version",
+        "source_message_ids",
+        "request_hash",
+        "redaction_count",
+        "omission_count",
+        "input_token_bound"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$",
+          "description": "UTC instant in RFC 3339 format."
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "\\S"
+        },
+        "source_message_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true,
+          "maxItems": 33
+        },
+        "request_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "redaction_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omission_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_token_bound": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "Immutable approved inputs in order and digest of the exact sanitized model-visible UTF-8 payload. Includes the initiating question and selected messages actually included. Counts suppress omitted source identity and content. One snapshot per dispatched target. Credentials and transport headers are excluded. Manual targets have no attested outbound snapshot."
+    },
+    "DispatchAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "created_at",
+        "attempt_id",
+        "run_id",
+        "target_id",
+        "attempt_no",
+        "fence",
+        "snapshot_id",
+        "reservation_id",
+        "phase",
+        "elapsed_ms",
+        "error_code"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$",
+          "description": "UTC instant in RFC 3339 format."
+        },
+        "attempt_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "attempt_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reservation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "prepared",
+            "send_intent",
+            "acknowledged",
+            "settled",
+            "delivery_unknown"
+          ]
+        },
+        "elapsed_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureCode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "UsageEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "created_at",
+        "entry_id",
+        "reservation_id",
+        "run_id",
+        "target_id",
+        "attempt_id",
+        "kind",
+        "amount_microusd",
+        "input_tokens",
+        "output_tokens"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$",
+          "description": "UTC instant in RFC 3339 format."
+        },
+        "entry_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reservation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "reserve",
+            "release",
+            "settle",
+            "hold"
+          ]
+        },
+        "amount_microusd": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Integer millionths of one US dollar. Round reservations up."
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AuditRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "created_at",
+        "event_id",
+        "trace_id",
+        "owner_id",
+        "project_id",
+        "resource_id",
+        "action",
+        "outcome"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$",
+          "description": "UTC instant in RFC 3339 format."
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "trace_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "owner_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "login",
+            "login_denied",
+            "logout",
+            "project_created",
+            "conversation_created",
+            "message_appended",
+            "run_created",
+            "run_transition",
+            "target_transition",
+            "context_allowed",
+            "context_denied",
+            "dispatch_attempt",
+            "manual_original_imported",
+            "budget_reserved",
+            "budget_denied",
+            "usage_reconciled",
+            "report_published",
+            "decision_saved",
+            "provider_config_changed",
+            "project_purged",
+            "project_exported",
+            "project_imported"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "denied",
+            "failed",
+            "partial",
+            "cancelled",
+            "unknown"
+          ]
+        }
+      },
+      "description": "Typed allowlist for new consequential events. Legacy audit rows are preserved. Use separate patterns for operator backup/restore evidence outside the restored database."
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RunEvent"
+    },
+    {
+      "$ref": "#/$defs/ContextSnapshot"
+    },
+    {
+      "$ref": "#/$defs/DispatchAttempt"
+    },
+    {
+      "$ref": "#/$defs/UsageEntry"
+    },
+    {
+      "$ref": "#/$defs/AuditRecord"
+    }
+  ]
+}

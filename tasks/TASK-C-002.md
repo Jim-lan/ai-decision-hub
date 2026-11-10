@@ -21,7 +21,7 @@ Use the tagged traceability matrix, architecture, OpenAPI, test matrix and merge
 
 ## Acceptance and verification
 
-Upgrade both an empty DB and a populated f3c0677 fixture twice. Observe stable UUIDs, unchanged source text and hashes, rejected orphan references and rejected evidence mutations. Run the named matrix cases, isolated unit and contract checks for modified ports, and real PostgreSQL integration for durable changes. Re-run the preceding milestone's vertical slice. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
+Upgrade both an empty DB and a populated f3c0677 fixture twice. Observe stable UUIDs, unchanged source text and hashes, rejected orphan references and rejected evidence mutations. Run the assertions in the named matrix cases that exercise this card’s deliverables, using fixtures for later dependencies. Run isolated unit and contract checks for modified ports and PostgreSQL integration for durable changes. At each milestone rerun the preceding completed slice. The full cross-feature cases remain open until their integration checkpoint. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
 
 ## Integration and recovery
 

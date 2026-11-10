@@ -1,6 +1,6 @@
 # Design baseline register
 
-**Gate:** G0. **Approved G1 baseline:** none. **Proposed annotated tag:** g1-design-v2.0. Do not infer approval from a draft ADR or a passing schema check. After approval record the exact commit, tag, scope decision and review evidence here. Later changes to frozen interfaces require a versioned change request.
+**Gate:** G0 review complete; candidate awaiting G1 owner decision. **Approved G1 baseline:** none. **Proposed annotated tag:** g1-design-v2.0. Do not infer approval from a draft ADR or a passing schema check. After approval record the exact commit, tag, scope decision and review evidence here. Later changes to frozen interfaces require a versioned change request.
 
 The owner requested a working Decision Hub first, with manual import and Gemini as the first API candidate. P0 covers independent originals, evidence-aware comparison, explicit owner choice, same-project history, privacy, spending controls and local recovery. Rich memory and decision supersession are P1. The multi-agent organization is the next platform direction at P2. Its staged ledger, research pilot, registry, factory and remote protocols are described in v1.4 §11. The P0 release does not depend on those platform milestones.
 
@@ -11,6 +11,8 @@ The owner requested a working Decision Hub first, with manual import and Gemini 
 - Draft decisions [scope](docs/adr/ADR-201-scope.md), [storage](docs/adr/ADR-202-durability.md), [identity](docs/adr/ADR-203-providers.md), [policy and budgets](docs/adr/ADR-204-policy-budget.md), [report and decision](docs/adr/ADR-205-comparison.md), [recovery](docs/adr/ADR-206-operations.md).
 
 The [G0-01 conflict log](docs/requirements/conflict-log.md) records the proposed disposition and verification obligations for each row.
+
+The independent reviewer verified closure of the design blockers in [the freeze review](docs/G1_FREEZE_REVIEW.md). Product acceptance cases below belong to subsequent implementation gates.
 
 ## Conflict and decision index
 

@@ -18,6 +18,8 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 
 ## Current handoff
 
-Astra resumed from ebe6eda and completed G0-01, recording dispositions for DB-01–07. The next actions are G0-02 through G0-04 in [TASK_BACKLOG.md](TASK_BACKLOG.md). The final architecture, API and test matrix are being drafted. Manual import comes first. Gemini account eligibility and nonzero spend have no approval or test evidence. Keep product implementation gated on G1.
+G0-01 was published at be400d2. G0-02 through G0-05 are complete in the G0 closeout commit. The saved candidate includes architecture, API/domain contracts, migration/lifecycle notes, matrix and comparison fixtures. A separate reviewer inspected the fixes and reported no outstanding blocking inconsistencies in the reviewed candidate.
 
-At task close update this ledger with commit or task ID, command, result and limitations. Update the decision index if a decision changed and the queue if an item advanced. Record failures explicitly.
+Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
+
+Next action: owner decision on docs/G1_FREEZE_REVIEW.md. After approval, tag the reviewed revision and begin C-001 using an efficient coding model. Historical interruption entries above describe the earlier STATE-001 checkpoint.
