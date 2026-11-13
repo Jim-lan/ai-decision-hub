@@ -1,8 +1,12 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
+
+
+NonBlank160 = Annotated[str, Field(min_length=1, max_length=160, pattern=r"\S")]
+NonNegativeInt = Annotated[int, Field(ge=0)]
 
 
 class Login(BaseModel):
@@ -73,12 +77,29 @@ class SearchPage(BaseModel):
 
 
 class Provider(BaseModel):
-    provider_id: str
-    alias: str
-    gateway: str
-    routing_mode: str
-    status: str
+    provider_id: NonBlank160
+    alias: NonBlank160
+    gateway: NonBlank160
+    routing_mode: NonBlank160
+    status: Literal["enabled", "disabled"]
     last_verified_at: datetime | None
+    acquisition_mode: Literal["official_api", "manual"]
+    app_name: NonBlank160 | None
+    configured_model_id: NonBlank160 | None
+    model_family: NonBlank160 | None
+    capabilities: list[Literal["text", "manual_import"]] = Field(
+        min_length=1, json_schema_extra={"uniqueItems": True}
+    )
+    pricing_status: Literal["verified_free", "verified_priced", "unknown", "manual"]
+    privacy_profile: Literal["local_only", "allowlisted", "blocked"]
+    pricing_version: NonBlank160 | None
+
+    @field_validator("capabilities")
+    @classmethod
+    def unique_capabilities(cls, value):
+        if len(value) != len(set(value)):
+            raise ValueError("Capabilities must be unique")
+        return value
 
 
 class TargetStatus(BaseModel):
@@ -105,18 +126,30 @@ class Run(BaseModel):
 class StoredOriginal(BaseModel):
     response_id: UUID
     target_id: UUID
-    actual_model_id: str
-    model_family: str
-    identity_confidence: str
-    acquisition_mode: str
-    content: str
-    source_hash: str
+    actual_model_id: NonBlank160
+    model_family: NonBlank160
+    identity_confidence: Literal["provider_reported", "user_declared", "unknown"]
+    acquisition_mode: Literal["official_api", "manual"]
+    content: str = Field(min_length=1)
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     created_at: datetime
 
 
 class OriginalDetails(StoredOriginal):
     run_id: UUID
-    provider: str
-    requested_model_id: str
-    gateway: str
-    routing_mode: str
+    provider: NonBlank160
+    requested_model_id: NonBlank160
+    gateway: NonBlank160
+    routing_mode: NonBlank160
+    resolved_provider_id: NonBlank160 | None
+    resolved_model_id: NonBlank160 | None
+    model_version: NonBlank160 | None
+    declared_app: NonBlank160 | None
+    declared_model_id: NonBlank160 | None
+    elapsed_ms: NonNegativeInt | None
+    input_tokens: NonNegativeInt | None
+    output_tokens: NonNegativeInt | None
+    actual_cost_microusd: NonNegativeInt | None
+    attempt_no: NonNegativeInt
+    context_snapshot_id: UUID | None
+    inclusion: Literal["included", "late_excluded"]

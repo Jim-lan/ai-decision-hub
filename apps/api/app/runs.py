@@ -61,7 +61,10 @@ def summary(conn, row):
 
 @router.get("/providers", response_model=list[Provider])
 def providers(owner=Depends(principal), conn=Depends(transaction)):
-    return conn.execute("SELECT * FROM provider_models ORDER BY provider_id, alias").fetchall()
+    return conn.execute("""SELECT provider_id, alias, gateway, routing_mode, status,
+        last_verified_at, acquisition_mode, app_name, configured_model_id, model_family,
+        capabilities, pricing_status, privacy_profile, pricing_version
+        FROM provider_models ORDER BY (status = 'enabled') DESC, provider_id, alias""").fetchall()
 
 
 @router.post("/runs", response_model=Run, status_code=202)
@@ -87,10 +90,18 @@ def start(data: Start, request: Request, idempotency_key: str = Header(min_lengt
           idempotency_key, fingerprint)).fetchone()
     for target in data.model_targets:
         conn.execute("""
-            INSERT INTO run_targets (run_id,provider,alias,model_id,gateway,routing_mode)
-            VALUES (%s,%s,%s,%s,%s,%s)
+            INSERT INTO run_targets (
+                run_id, provider, alias, model_id, gateway, routing_mode,
+                registry_status, acquisition_mode, app_name, configured_model_id,
+                model_family, capabilities, pricing_status, privacy_profile,
+                pricing_version, identity_confidence, registry_verified_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (row["run_id"], registry["provider_id"], registry["alias"], target.model_id.strip(),
-              registry["gateway"], registry["routing_mode"]))
+              registry["gateway"], registry["routing_mode"], registry["status"],
+              registry["acquisition_mode"], registry["app_name"], registry["configured_model_id"],
+              registry["model_family"], registry["capabilities"], registry["pricing_status"],
+              registry["privacy_profile"], registry["pricing_version"],
+              registry["identity_confidence"], registry["last_verified_at"]))
     audit(conn, "run_created", request.state.trace, owner, row["run_id"],
           project=thread["project_id"])
     return summary(conn, run_record(conn, row["run_id"], owner))

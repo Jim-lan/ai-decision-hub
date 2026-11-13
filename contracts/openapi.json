@@ -220,41 +220,209 @@
       "OriginalDetails": {
         "properties": {
           "acquisition_mode": {
+            "enum": [
+              "official_api",
+              "manual"
+            ],
             "title": "Acquisition Mode",
             "type": "string"
           },
+          "actual_cost_microusd": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Cost Microusd"
+          },
           "actual_model_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Actual Model Id",
             "type": "string"
           },
+          "attempt_no": {
+            "minimum": 0.0,
+            "title": "Attempt No",
+            "type": "integer"
+          },
           "content": {
+            "minLength": 1,
             "title": "Content",
             "type": "string"
+          },
+          "context_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Snapshot Id"
           },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
+          "declared_app": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared App"
+          },
+          "declared_model_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Model Id"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
+          },
           "gateway": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Gateway",
             "type": "string"
           },
           "identity_confidence": {
+            "enum": [
+              "provider_reported",
+              "user_declared",
+              "unknown"
+            ],
             "title": "Identity Confidence",
             "type": "string"
           },
+          "inclusion": {
+            "enum": [
+              "included",
+              "late_excluded"
+            ],
+            "title": "Inclusion",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
           "model_family": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Model Family",
             "type": "string"
           },
+          "model_version": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
           "provider": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Provider",
             "type": "string"
           },
           "requested_model_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Requested Model Id",
             "type": "string"
+          },
+          "resolved_model_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Model Id"
+          },
+          "resolved_provider_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Provider Id"
           },
           "response_id": {
             "format": "uuid",
@@ -262,6 +430,9 @@
             "type": "string"
           },
           "routing_mode": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Routing Mode",
             "type": "string"
           },
@@ -271,6 +442,7 @@
             "type": "string"
           },
           "source_hash": {
+            "pattern": "^[0-9a-f]{64}$",
             "title": "Source Hash",
             "type": "string"
           },
@@ -294,7 +466,19 @@
           "provider",
           "requested_model_id",
           "gateway",
-          "routing_mode"
+          "routing_mode",
+          "resolved_provider_id",
+          "resolved_model_id",
+          "model_version",
+          "declared_app",
+          "declared_model_id",
+          "elapsed_ms",
+          "input_tokens",
+          "output_tokens",
+          "actual_cost_microusd",
+          "attempt_no",
+          "context_snapshot_id",
+          "inclusion"
         ],
         "title": "OriginalDetails",
         "type": "object"
@@ -326,11 +510,66 @@
       },
       "Provider": {
         "properties": {
+          "acquisition_mode": {
+            "enum": [
+              "official_api",
+              "manual"
+            ],
+            "title": "Acquisition Mode",
+            "type": "string"
+          },
           "alias": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Alias",
             "type": "string"
           },
+          "app_name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Name"
+          },
+          "capabilities": {
+            "items": {
+              "enum": [
+                "text",
+                "manual_import"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Capabilities",
+            "type": "array",
+            "uniqueItems": true
+          },
+          "configured_model_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configured Model Id"
+          },
           "gateway": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Gateway",
             "type": "string"
           },
@@ -346,15 +585,72 @@
             ],
             "title": "Last Verified At"
           },
+          "model_family": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Family"
+          },
+          "pricing_status": {
+            "enum": [
+              "verified_free",
+              "verified_priced",
+              "unknown",
+              "manual"
+            ],
+            "title": "Pricing Status",
+            "type": "string"
+          },
+          "pricing_version": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pricing Version"
+          },
+          "privacy_profile": {
+            "enum": [
+              "local_only",
+              "allowlisted",
+              "blocked"
+            ],
+            "title": "Privacy Profile",
+            "type": "string"
+          },
           "provider_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Provider Id",
             "type": "string"
           },
           "routing_mode": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Routing Mode",
             "type": "string"
           },
           "status": {
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -365,7 +661,15 @@
           "gateway",
           "routing_mode",
           "status",
-          "last_verified_at"
+          "last_verified_at",
+          "acquisition_mode",
+          "app_name",
+          "configured_model_id",
+          "model_family",
+          "capabilities",
+          "pricing_status",
+          "privacy_profile",
+          "pricing_version"
         ],
         "title": "Provider",
         "type": "object"
@@ -552,14 +856,22 @@
       "StoredOriginal": {
         "properties": {
           "acquisition_mode": {
+            "enum": [
+              "official_api",
+              "manual"
+            ],
             "title": "Acquisition Mode",
             "type": "string"
           },
           "actual_model_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Actual Model Id",
             "type": "string"
           },
           "content": {
+            "minLength": 1,
             "title": "Content",
             "type": "string"
           },
@@ -569,10 +881,18 @@
             "type": "string"
           },
           "identity_confidence": {
+            "enum": [
+              "provider_reported",
+              "user_declared",
+              "unknown"
+            ],
             "title": "Identity Confidence",
             "type": "string"
           },
           "model_family": {
+            "maxLength": 160,
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Model Family",
             "type": "string"
           },
@@ -582,6 +902,7 @@
             "type": "string"
           },
           "source_hash": {
+            "pattern": "^[0-9a-f]{64}$",
             "title": "Source Hash",
             "type": "string"
           },

@@ -5,6 +5,14 @@
     "gateway": "manual",
     "routing_mode": "user_declared",
     "status": "enabled",
-    "last_verified_at": null
+    "last_verified_at": null,
+    "acquisition_mode": "manual",
+    "app_name": null,
+    "configured_model_id": null,
+    "model_family": null,
+    "capabilities": ["text", "manual_import"],
+    "pricing_status": "manual",
+    "privacy_profile": "local_only",
+    "pricing_version": null
   }
 ]

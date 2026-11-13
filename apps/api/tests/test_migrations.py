@@ -164,7 +164,7 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0004_security_audit"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0006_identity_constraints"
             known = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
                 WHERE event_id=%s""", (known_event,)).fetchone()
             assert known == {"schema_version": 1, "project_id": ids["project"], "outcome": "accepted"}
@@ -202,3 +202,135 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
                 with conn.transaction():
                     conn.execute("TRUNCATE audit_events")
             assert conn.execute("SELECT count(*) AS count FROM audit_events").fetchone()["count"] == count
+
+
+def test_provider_identity_migration_preserves_unknown_history_and_freezes_snapshots():
+    with isolated_database():
+        upgrade("0002_manual_runs")
+        ids, content, source_hash, _ = seed_legacy()
+        upgrade("0004_security_audit")
+        with connect() as conn:
+            conn.execute("""UPDATE provider_models SET status='disabled'
+                WHERE provider_id='manual' AND alias='user-declared'""")
+            conn.execute("""INSERT INTO provider_models
+                (provider_id,alias,gateway,routing_mode,status,last_verified_at)
+                VALUES ('legacy-provider','legacy-alias','legacy-gateway','direct','enabled',now())""")
+        upgrade("head")
+        upgrade("head")
+        with connect() as conn:
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0006_identity_constraints"
+            manual = conn.execute("""SELECT acquisition_mode, app_name, configured_model_id,
+                model_family, capabilities, pricing_status, privacy_profile, pricing_version,
+                identity_confidence FROM provider_models
+                WHERE provider_id='manual' AND alias='user-declared'""").fetchone()
+            assert manual == {
+                "acquisition_mode": "manual", "app_name": None,
+                "configured_model_id": None, "model_family": None,
+                "capabilities": ["text", "manual_import"], "pricing_status": "manual",
+                "privacy_profile": "local_only", "pricing_version": None,
+                "identity_confidence": "user_declared",
+            }
+            candidate = conn.execute("""SELECT status,last_verified_at,configured_model_id,
+                model_family,pricing_status,privacy_profile,pricing_version,identity_confidence
+                FROM provider_models WHERE provider_id='google'""").fetchone()
+            assert candidate == {
+                "status": "disabled", "last_verified_at": None,
+                "configured_model_id": None, "model_family": None,
+                "pricing_status": "unknown", "privacy_profile": "blocked",
+                "pricing_version": None, "identity_confidence": "unknown",
+            }
+            legacy_catalog = conn.execute("""SELECT status,last_verified_at,acquisition_mode,
+                app_name,configured_model_id,model_family,capabilities,pricing_status,
+                privacy_profile,pricing_version,identity_confidence FROM provider_models
+                WHERE provider_id='legacy-provider'""").fetchone()
+            assert legacy_catalog.pop("last_verified_at") is not None
+            assert legacy_catalog == {
+                "status": "disabled",
+                "acquisition_mode": "official_api", "app_name": None,
+                "configured_model_id": None, "model_family": None,
+                "capabilities": ["text"], "pricing_status": "unknown",
+                "privacy_profile": "blocked", "pricing_version": None,
+                "identity_confidence": "unknown",
+            }
+            for statement, value in (
+                ("""UPDATE provider_models SET app_name=%s
+                    WHERE provider_id='legacy-provider'""", " " * 160 + "x"),
+                ("""UPDATE provider_models SET alias=%s
+                    WHERE provider_id='legacy-provider'""", "\t"),
+            ):
+                with pytest.raises(psycopg.errors.CheckViolation):
+                    with conn.transaction():
+                        conn.execute(statement, (value,))
+            target = conn.execute("""SELECT provider,alias,model_id,gateway,routing_mode,
+                registry_status,acquisition_mode,model_family,identity_confidence,
+                registry_verified_at FROM run_targets WHERE target_id=%s""",
+                (ids["target"],)).fetchone()
+            assert target == {
+                "provider": "manual", "alias": "user-declared",
+                "model_id": "declared-model", "gateway": "manual",
+                "routing_mode": "user_declared", "registry_status": "unknown",
+                "acquisition_mode": "manual", "model_family": None,
+                "identity_confidence": "user_declared", "registry_verified_at": None,
+            }
+            original = conn.execute("""SELECT content,source_hash,actual_model_id,model_family,
+                identity_confidence,resolved_provider_id,resolved_model_id,declared_app,
+                declared_model_id,elapsed_ms,input_tokens,output_tokens,actual_cost_microusd,
+                attempt_no,context_snapshot_id,inclusion FROM model_responses
+                WHERE response_id=%s""", (ids["response"],)).fetchone()
+            assert original == {
+                "content": content, "source_hash": source_hash,
+                "actual_model_id": "declared-model", "model_family": "unknown",
+                "identity_confidence": "user_declared", "resolved_provider_id": None,
+                "resolved_model_id": None, "declared_app": None, "declared_model_id": None,
+                "elapsed_ms": None, "input_tokens": None, "output_tokens": None,
+                "actual_cost_microusd": None, "attempt_no": 0,
+                "context_snapshot_id": None, "inclusion": "included",
+            }
+            conn.execute("""UPDATE provider_models SET status='enabled'
+                WHERE provider_id='manual' AND alias='user-declared'""")
+            second_run = conn.execute("""INSERT INTO runs
+                (project_id,conversation_id,message_id,owner_id,request_key,request_hash)
+                VALUES (%s,%s,%s,%s,'legacy-writer-after-0005','legacy') RETURNING run_id""",
+                (ids["other_project"], ids["other_conversation"], ids["other_message"],
+                 ids["owner"])).fetchone()["run_id"]
+            old_writer_target = conn.execute("""INSERT INTO run_targets
+                (run_id,provider,alias,model_id,gateway,routing_mode)
+                VALUES (%s,'manual','user-declared','legacy-writer','manual','user_declared')
+                RETURNING target_id,registry_status,acquisition_mode,identity_confidence""",
+                (second_run,)).fetchone()
+            assert old_writer_target == {
+                "target_id": old_writer_target["target_id"], "registry_status": "enabled",
+                "acquisition_mode": "manual", "identity_confidence": "user_declared",
+            }
+            with pytest.raises(psycopg.errors.CheckViolation):
+                with conn.transaction():
+                    conn.execute("""UPDATE provider_models
+                        SET capabilities=ARRAY['text','text']
+                        WHERE provider_id='manual' AND alias='user-declared'""")
+            with pytest.raises(psycopg.errors.CheckViolation):
+                with conn.transaction():
+                    conn.execute("""INSERT INTO model_responses (
+                        target_id,actual_model_id,model_family,identity_confidence,
+                        acquisition_mode,content,source_hash,resolved_provider_id,
+                        resolved_model_id
+                    ) VALUES (%s,'fixture-model','Fixture Family','provider_reported',
+                        'official_api','invalid identity',%s,' ','fixture-model')""",
+                        (old_writer_target["target_id"],
+                         hashlib.sha256(b"invalid identity").hexdigest()))
+            with pytest.raises(psycopg.errors.RaiseException):
+                with conn.transaction():
+                    conn.execute("UPDATE run_targets SET run_id=%s WHERE target_id=%s",
+                                 (second_run, ids["target"]))
+            conn.execute("""UPDATE provider_models SET status='disabled', app_name='changed'
+                WHERE provider_id='manual' AND alias='user-declared'""")
+            assert conn.execute("""SELECT registry_status,app_name FROM run_targets
+                WHERE target_id=%s""", (ids["target"],)).fetchone() == {
+                    "registry_status": "unknown", "app_name": None,
+                }
+            with pytest.raises(psycopg.errors.RaiseException):
+                with conn.transaction():
+                    conn.execute("UPDATE run_targets SET model_family='relabeled' WHERE target_id=%s",
+                                 (ids["target"],))
+            with pytest.raises(psycopg.errors.CheckViolation):
+                with conn.transaction():
+                    conn.execute("UPDATE provider_models SET status='enabled' WHERE provider_id='google'")
