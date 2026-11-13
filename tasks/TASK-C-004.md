@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Ready |
+| Status | Done |
 | Milestone | P0-M0 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-005, NFR-007, NFR-008, NFR-010 |
@@ -30,3 +30,11 @@ All later tasks use these gates. Restore the last passing CI config and retain t
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion evidence
+
+Completed November 12, 2026. CI now runs pinned lint, strict ProviderPort type checks, transport-boundary checks, candidate/runtime OpenAPI validation, positive and deliberately incompatible response fixtures, domain fixtures, and requirement coverage before the existing migration, PostgreSQL, runtime-contract, HTTP, browser, and recovery gates. Deterministic provider fixtures cover known success, success with unknown identity/usage, timeout, and raw disallowed-identity normalization. The pytest harness denies external network connections while permitting only its database and loopback servers.
+
+The final PostgreSQL suite passed 18 tests; strict mypy, Ruff, boundary, OpenAPI, domain, coverage, vanilla-migration, browser, bootstrap, compile, Compose, and diff gates passed. A separate reviewer’s five findings were resolved, including nullable unknown metadata, concrete adapter type conformance, identity mismatch classification, external egress denial, and candidate response fixtures. See `docs/test-reports/C-004.md`.
+
+This closes only the C-004 portions of P0-19, P0-22, and P0-24. Full endpoint runtime conformance, a merged production adapter, end-to-end fake API/manual comparison, and release browser scenarios remain with C-006/C-007/C-009/C-014/C-015. No live provider call or credential was used, no frozen public contract changed, and no Change Request was required.

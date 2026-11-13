@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "succeeded",
+  "requested_model_id": "fixture-model",
+  "actual_model_id": "fixture-model",
+  "model_family": "fixture-family",
+  "content": "Deterministic fixture response.",
+  "elapsed_ms": 17,
+  "input_tokens": 12,
+  "output_tokens": 7,
+  "error_code": null
+}

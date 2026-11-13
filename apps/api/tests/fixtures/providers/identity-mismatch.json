@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "succeeded",
+  "requested_model_id": "fixture-model",
+  "actual_model_id": "unexpected-model",
+  "model_family": "unexpected-family",
+  "content": "This result must be rejected because its model is outside the allowlist.",
+  "elapsed_ms": 23,
+  "input_tokens": 12,
+  "output_tokens": 1,
+  "error_code": null
+}

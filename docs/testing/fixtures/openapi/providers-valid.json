@@ -1,0 +1,10 @@
+[
+  {
+    "provider_id": "manual",
+    "alias": "user-declared",
+    "gateway": "manual",
+    "routing_mode": "user_declared",
+    "status": "enabled",
+    "last_verified_at": null
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "succeeded",
+  "requested_model_id": "fixture-model",
+  "model_family": "fixture-family",
+  "content": "This fixture intentionally omits actual_model_id.",
+  "elapsed_ms": 17,
+  "input_tokens": 12,
+  "output_tokens": 7,
+  "error_code": null,
+  "vendor_payload": {"must_not_cross_the_port": true}
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-decision-hub.local/contracts/provider-result-v1.schema.json",
+  "title": "ProviderPort deterministic result fixture v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "status",
+        "requested_model_id",
+        "actual_model_id",
+        "model_family",
+        "content",
+        "elapsed_ms",
+        "input_tokens",
+        "output_tokens",
+        "error_code"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "status": {"const": "succeeded"},
+        "requested_model_id": {"type": "string", "minLength": 1},
+        "actual_model_id": {"type": ["string", "null"], "minLength": 1},
+        "model_family": {"type": ["string", "null"], "minLength": 1},
+        "content": {"type": "string"},
+        "elapsed_ms": {"type": "integer", "minimum": 0},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "error_code": {"type": "null"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "status",
+        "requested_model_id",
+        "actual_model_id",
+        "model_family",
+        "content",
+        "elapsed_ms",
+        "input_tokens",
+        "output_tokens",
+        "error_code"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "status": {"const": "failed"},
+        "requested_model_id": {"type": "string", "minLength": 1},
+        "actual_model_id": {"type": ["string", "null"]},
+        "model_family": {"type": ["string", "null"]},
+        "content": {"type": "null"},
+        "elapsed_ms": {"type": "integer", "minimum": 0},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "error_code": {
+          "enum": [
+            "disabled",
+            "policy_denied",
+            "budget_denied",
+            "quota_denied",
+            "timeout",
+            "cancelled",
+            "provider_error",
+            "delivery_unknown",
+            "invalid_response",
+            "internal_error"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import os
+import socket
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,24 @@ from fastapi.testclient import TestClient
 
 from app.db import connection_args, read_secret
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def deny_external_network(monkeypatch):
+    """Permit the test database and loopback servers; deny all other test egress."""
+    database_host = os.environ.get("PGHOST", "127.0.0.1")
+    database_port = int(os.environ.get("PGPORT", "5432"))
+    allowed = {"127.0.0.1", "::1", "localhost", database_host}
+    for result in socket.getaddrinfo(database_host, database_port, type=socket.SOCK_STREAM):
+        allowed.add(result[4][0])
+    original_connect = socket.socket.connect
+
+    def guarded_connect(connection, address):
+        if isinstance(address, tuple) and str(address[0]) not in allowed:
+            raise RuntimeError(f"External test network denied: {address[0]}")
+        return original_connect(connection, address)
+
+    monkeypatch.setattr(socket.socket, "connect", guarded_connect)
 
 
 @pytest.fixture(scope="session", autouse=True)

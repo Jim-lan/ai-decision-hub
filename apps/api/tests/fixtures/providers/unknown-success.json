@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "succeeded",
+  "requested_model_id": "fixture-model",
+  "actual_model_id": null,
+  "model_family": null,
+  "content": "Successful content with explicitly unknown identity and usage.",
+  "elapsed_ms": 19,
+  "input_tokens": null,
+  "output_tokens": null,
+  "error_code": null
+}

@@ -3,6 +3,29 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/requirements-test.txt
+      - name: Install pinned verification tools
+        run: pip install -r apps/api/requirements-test.txt
+      - name: Lint Python sources and checks
+        run: ruff check apps/api/app apps/api/tests docs/testing infra/tests
+      - name: Verify typed provider boundary
+        run: |
+          mypy --strict --python-version 3.12 apps/api/app/ports.py apps/api/tests/typed_provider_fakes.py
+          python docs/testing/check_boundaries.py
+      - name: Validate API, domain, and requirement contracts
+        run: |
+          python docs/testing/check_openapi.py
+          python docs/testing/check_domain.py
+          python docs/testing/check_coverage.py
   foundation:
     runs-on: ubuntu-latest
     timeout-minutes: 20

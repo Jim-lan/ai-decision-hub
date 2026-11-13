@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "failed",
+  "requested_model_id": "fixture-model",
+  "actual_model_id": null,
+  "model_family": null,
+  "content": null,
+  "elapsed_ms": 1500,
+  "input_tokens": null,
+  "output_tokens": null,
+  "error_code": "timeout"
+}
