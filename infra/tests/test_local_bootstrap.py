@@ -48,6 +48,7 @@ class LocalBootstrapTests(unittest.TestCase):
 
     def test_initialized_bootstrap_starts_expected_services(self):
         self.assertEqual(self.run_script("init-local.sh").returncode, 0)
+        self.assertTrue((self.root / ".secrets/cursor_signing_key").stat().st_size >= 48)
         result = self.run_script("start-local.sh")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.root / "docker-invoked").read_text().strip(),
@@ -60,6 +61,17 @@ class LocalBootstrapTests(unittest.TestCase):
         self.assertEqual(self.run_script("init-local.sh").returncode, 0)
         self.assertEqual(before, {path.name: path.read_bytes() for path in paths})
         self.assertTrue(all(path.stat().st_mode & 0o077 == 0 for path in paths))
+
+    def test_proxy_access_log_excludes_sensitive_query_string(self):
+        config = (Path(__file__).resolve().parents[2] / "apps/web/nginx.conf").read_text()
+        log_format = config.split("server {", 1)[0]
+        self.assertIn("log_format query_safe", log_format)
+        self.assertIn("access_log /var/log/nginx/access.log query_safe", config)
+        self.assertIn("$request_method $uri $server_protocol", log_format)
+        self.assertNotIn("$request ", log_format)
+        self.assertNotIn("$args", log_format)
+        self.assertNotIn("$request_uri", log_format)
+        self.assertNotIn("$http_referer", log_format)
 
 
 if __name__ == "__main__":

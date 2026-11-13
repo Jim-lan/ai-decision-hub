@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Protocol, runtime_checkable
+from typing import Literal, Mapping, Protocol, runtime_checkable
 from uuid import UUID
 
 
@@ -67,3 +67,46 @@ class ProviderPort(Protocol):
     async def capabilities(self, model_id: str) -> ModelCapabilities: ...
 
     async def estimate_cost(self, request: GenerationRequest) -> CostEstimate: ...
+
+
+class RepositoryNotFound(Exception):
+    """The requested canonical record is outside the repository scope."""
+
+
+@runtime_checkable
+class ConversationRepository(Protocol):
+    """Canonical owner/project/conversation/message persistence boundary."""
+
+    def create_project(self, owner_id: UUID, name: str) -> Mapping[str, object]: ...
+
+    def list_projects(self, owner_id: UUID) -> list[Mapping[str, object]]: ...
+
+    def get_project(self, project_id: UUID, owner_id: UUID) -> Mapping[str, object]: ...
+
+    def create_conversation(self, project_id: UUID, title: str) -> Mapping[str, object]: ...
+
+    def list_conversations(self, project_id: UUID) -> list[Mapping[str, object]]: ...
+
+    def get_conversation(
+        self, conversation_id: UUID, owner_id: UUID, *, lock: bool = False
+    ) -> Mapping[str, object]: ...
+
+    def append_message(self, conversation_id: UUID, content: str) -> Mapping[str, object]: ...
+
+    def list_messages(
+        self, conversation_id: UUID, after_sequence: int, limit: int
+    ) -> list[Mapping[str, object]]: ...
+
+    def has_search_anchor(
+        self, project_id: UUID, resource_id: UUID, created_at: datetime, query: str
+    ) -> bool: ...
+
+    def search_messages(
+        self,
+        project_id: UUID,
+        query: str,
+        after_created: datetime,
+        after_kind: str,
+        after_resource: UUID,
+        limit: int,
+    ) -> list[Mapping[str, object]]: ...

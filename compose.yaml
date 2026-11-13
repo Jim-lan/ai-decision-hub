@@ -10,8 +10,9 @@ x-api: &api
     PGDATABASE: aihub
     POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     OWNER_PASSWORD_FILE: /run/secrets/owner_password
+    CURSOR_SIGNING_KEY_FILE: /run/secrets/cursor_signing_key
     PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
-  secrets: [db_password, owner_password]
+  secrets: [db_password, owner_password, cursor_signing_key]
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -86,3 +87,5 @@ secrets:
     file: .secrets/db_password
   owner_password:
     file: .secrets/owner_password
+  cursor_signing_key:
+    file: .secrets/cursor_signing_key

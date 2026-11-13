@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Ready |
+| Status | Done |
 | Milestone | P0-M1 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-001, FR-007, FR-008, NFR-002, NFR-013 |
@@ -30,3 +30,24 @@ Run requests and context selection depend on these IDs. Preserve rows on applica
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion evidence
+
+Completed November 13, 2026. Workspace persistence now consumes the frozen
+`ConversationRepository` through a composition factory backed by a PostgreSQL adapter. Projects,
+conversations, immutable exact-content messages, stable sequence pages, and bounded
+case-insensitive literal project history are available through the approved routes. Search pages
+use project/query-bound HMAC-authenticated keyset cursors backed by a dedicated durable signing
+secret; malformed, stale, cross-project, and modified cursors return the documented error.
+
+The final PostgreSQL suite passed 21 tests. Ruff, strict port typing, boundary, OpenAPI, domain,
+coverage, bootstrap, runtime-contract equality, Compose health, and diff gates passed. A live
+proxy canary placed sensitive values in both the request query and Referer; nginx logged only the
+path. Separate review findings about repository substitution, cursor authentication and key
+separation, malformed fields, query/Referer logging, and the generated snapshot were resolved;
+re-review reported no blocking or major issue. See `docs/test-reports/C-005.md`.
+
+This closes the C-005 portions of P0-01 and P0-14. Decision hits remain deferred to C-013, and the
+full restart/recovery release assertion remains with C-015. No embeddings, semantic memory,
+cross-project retrieval, P1/P2 behavior, frozen public-contract change, or Change Request was
+introduced.

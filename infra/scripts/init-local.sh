@@ -3,7 +3,7 @@ set -eu
 cd "$(dirname "$0")/../.."
 umask 077
 mkdir -p .secrets
-for file in db_password owner_password backup_password; do
+for file in db_password owner_password backup_password cursor_signing_key; do
     if [ ! -e ".secrets/$file" ]; then
         tmp=$(mktemp ".secrets/$file.XXXXXX")
         openssl rand -hex 24 > "$tmp"

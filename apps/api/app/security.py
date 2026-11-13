@@ -45,6 +45,8 @@ def audit(conn, action: str, trace: UUID, owner=None, resource=None, *, project=
 
 
 def bootstrap():
+    if len(read_secret("CURSOR_SIGNING_KEY").encode()) < 32:
+        raise ValueError("Use at least 32 bytes for the cursor signing key")
     with connect() as conn:
         conn.execute("SELECT pg_advisory_xact_lock(1740092)")
         if not conn.execute("SELECT 1 FROM users WHERE login='owner'").fetchone():

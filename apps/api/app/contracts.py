@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -53,6 +54,21 @@ class Message(BaseModel):
 
 class History(BaseModel):
     items: list[Message]
+    next_cursor: str | None
+
+
+class SearchHit(BaseModel):
+    project_id: UUID
+    conversation_id: UUID
+    kind: Literal["message", "decision"]
+    resource_id: UUID
+    run_id: UUID | None
+    excerpt: str = Field(max_length=240)
+    created_at: datetime
+
+
+class SearchPage(BaseModel):
+    items: list[SearchHit]
     next_cursor: str | None
 
 
