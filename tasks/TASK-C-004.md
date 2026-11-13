@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting prerequisite evidence |
+| Status | Ready |
 | Milestone | P0-M0 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-005, NFR-007, NFR-008, NFR-010 |

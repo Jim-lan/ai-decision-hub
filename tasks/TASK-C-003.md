@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting prerequisite evidence |
+| Status | Done |
 | Milestone | P0-M0 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-018, NFR-005, NFR-006, NFR-013 |
@@ -30,3 +30,9 @@ Every business endpoint calls AuthorizationPort before resource access. Roll bac
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion evidence
+
+Completed November 10, 2026. Session expiry and revocation, exact-origin write protection, durable login throttling, owner/project authorization, typed scoped audit evidence, append-only enforcement, and sanitized unexpected-error handling are implemented. The final PostgreSQL suite passed 13 tests; the migration chain passed twice on a fresh vanilla PostgreSQL 16 database; the isolated browser journey passed; and C-001 bootstrap regressions passed. A separate reviewer confirmed that the five initial security/migration findings were resolved with no remaining blocking or major issue. See `docs/test-reports/C-003.md` for commands, scope, and residual limits.
+
+The full export redaction assertion in P0-02 remains assigned to C-015, and the remaining cross-feature authorization coverage in P0-23 remains assigned to C-010, C-013, and C-014. No frozen contract changed and no Change Request was required.

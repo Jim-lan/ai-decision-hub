@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 import os
 from uuid import uuid4
 
@@ -9,6 +10,9 @@ from starlette.exceptions import HTTPException
 
 from app import runs, security, workspace
 from app.db import connect
+
+
+logger = logging.getLogger("ai_decision_hub.requests")
 
 
 @asynccontextmanager
@@ -25,7 +29,8 @@ app.include_router(runs.router)
 
 def problem(request, status, detail):
     code = {400: "bad_request", 401: "unauthorized", 403: "forbidden", 404: "not_found",
-            409: "conflict", 422: "invalid_input"}.get(status, "request_error")
+            409: "conflict", 422: "invalid_input", 429: "rate_limited",
+            500: "internal_error", 503: "unavailable"}.get(status, "internal_error")
     return JSONResponse({"type": "about:blank", "title": detail, "status": status,
                          "error_code": code, "trace_id": str(request.state.trace)},
                         status_code=status, media_type="application/problem+json")
@@ -37,7 +42,11 @@ async def protect(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"} and request.headers.get("origin") != os.environ["PUBLIC_BASE_URL"]:
         response = problem(request, 403, "Request origin is not allowed")
     else:
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.error("Unhandled request failure trace_id=%s", request.state.trace)
+            response = problem(request, 500, "Internal request failure")
     response.headers["X-Trace-ID"] = str(request.state.trace)
     response.headers["Cache-Control"] = "no-store"
     return response

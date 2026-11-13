@@ -35,7 +35,7 @@ class Original(NewMessage):
 
 
 def run_record(conn, run_id, owner):
-    row = conn.execute("SELECT run_id, conversation_id, message_id, created_at, deadline FROM runs WHERE run_id=%s AND owner_id=%s",
+    row = conn.execute("SELECT run_id, project_id, conversation_id, message_id, created_at, deadline FROM runs WHERE run_id=%s AND owner_id=%s",
                        (run_id, owner)).fetchone()
     if not row:
         raise HTTPException(404, "Run not found")
@@ -91,7 +91,8 @@ def start(data: Start, request: Request, idempotency_key: str = Header(min_lengt
             VALUES (%s,%s,%s,%s,%s,%s)
         """, (row["run_id"], registry["provider_id"], registry["alias"], target.model_id.strip(),
               registry["gateway"], registry["routing_mode"]))
-    audit(conn, "run_created", request.state.trace, owner, row["run_id"])
+    audit(conn, "run_created", request.state.trace, owner, row["run_id"],
+          project=thread["project_id"])
     return summary(conn, run_record(conn, row["run_id"], owner))
 
 
@@ -141,5 +142,6 @@ def import_original(run_id: UUID, data: Original, request: Request, owner=Depend
         INSERT INTO model_responses (target_id,actual_model_id,model_family,identity_confidence,
             acquisition_mode,content,source_hash) VALUES (%s,%s,%s,'user_declared','manual',%s,%s) RETURNING *
     """, (data.target_id, target["model_id"], data.model_family, data.content, digest(data.content))).fetchone()
-    audit(conn, "manual_original_imported", request.state.trace, owner, row["response_id"])
+    audit(conn, "manual_original_imported", request.state.trace, owner, row["response_id"],
+          project=run["project_id"])
     return row

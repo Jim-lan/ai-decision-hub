@@ -84,8 +84,8 @@ def seed_legacy(*, mismatched_message=False):
 
 def test_empty_database_upgrades_to_head_idempotently():
     with isolated_database():
-        upgrade("head")
-        upgrade("head")
+        upgrade("0003_storage_contract")
+        upgrade("0003_storage_contract")
         with connect() as conn:
             assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0003_storage_contract"
             project_id = conn.execute("""SELECT is_nullable FROM information_schema.columns
@@ -97,8 +97,8 @@ def test_populated_legacy_database_upgrades_idempotently_and_preserves_evidence(
     with isolated_database():
         upgrade("0002_manual_runs")
         ids, content, source_hash, deadline = seed_legacy()
-        upgrade("head")
-        upgrade("head")
+        upgrade("0003_storage_contract")
+        upgrade("0003_storage_contract")
         with connect() as conn:
             assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0003_storage_contract"
             run = conn.execute("SELECT project_id,message_id,deadline FROM runs WHERE run_id=%s",
@@ -139,7 +139,7 @@ def test_invalid_legacy_scope_aborts_migration_without_partial_schema_change():
         upgrade("0002_manual_runs")
         ids, content, source_hash, _ = seed_legacy(mismatched_message=True)
         with pytest.raises(IntegrityError) as error:
-            upgrade("head")
+            upgrade("0003_storage_contract")
         assert isinstance(error.value.orig, psycopg.errors.ForeignKeyViolation)
         with connect() as conn:
             assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0002_manual_runs"
@@ -148,3 +148,57 @@ def test_invalid_legacy_scope_aborts_migration_without_partial_schema_change():
             original = conn.execute("SELECT content,source_hash FROM model_responses WHERE response_id=%s",
                                     (ids["response"],)).fetchone()
             assert original == {"content": content, "source_hash": source_hash}
+
+
+def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows():
+    with isolated_database():
+        upgrade("0002_manual_runs")
+        ids, _, _, _ = seed_legacy()
+        upgrade("0003_storage_contract")
+        known_event = uuid4()
+        with connect() as conn:
+            conn.execute("""INSERT INTO audit_events
+                (event_id,owner_id,action,resource_id,trace_id)
+                VALUES (%s,%s,'project_created',%s,%s)""",
+                (known_event, ids["owner"], ids["project"], uuid4()))
+        upgrade("head")
+        upgrade("head")
+        with connect() as conn:
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0004_security_audit"
+            known = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
+                WHERE event_id=%s""", (known_event,)).fetchone()
+            assert known == {"schema_version": 1, "project_id": ids["project"], "outcome": "accepted"}
+            legacy = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
+                WHERE event_id=%s""", (ids["audit"],)).fetchone()
+            assert legacy == {"schema_version": 0, "project_id": None, "outcome": "unknown"}
+            old_denied = uuid4()
+            old_success = uuid4()
+            conn.execute("""INSERT INTO audit_events
+                (event_id,owner_id,action,resource_id,trace_id)
+                VALUES (%s,%s,'login_denied',NULL,%s),
+                       (%s,%s,'project_created',%s,%s)""",
+                (old_denied, ids["owner"], uuid4(), old_success, ids["owner"],
+                 ids["project"], uuid4()))
+            compatibility = conn.execute("""SELECT event_id,schema_version,outcome
+                FROM audit_events WHERE event_id IN (%s,%s)""",
+                (old_denied, old_success)).fetchall()
+            assert {row["event_id"]: (row["schema_version"], row["outcome"])
+                    for row in compatibility} == {
+                old_denied: (1, "denied"), old_success: (1, "accepted"),
+            }
+            with pytest.raises(psycopg.errors.CheckViolation):
+                with conn.transaction():
+                    conn.execute("""INSERT INTO audit_events
+                        (owner_id,action,outcome,trace_id) VALUES (%s,'untyped','accepted',%s)""",
+                        (ids["owner"], uuid4()))
+            with pytest.raises(psycopg.errors.RaiseException):
+                with conn.transaction():
+                    conn.execute("""INSERT INTO audit_events
+                        (schema_version,owner_id,action,outcome,trace_id)
+                        VALUES (0,%s,'untyped','anything',%s)""",
+                        (ids["owner"], uuid4()))
+            count = conn.execute("SELECT count(*) AS count FROM audit_events").fetchone()["count"]
+            with pytest.raises(psycopg.errors.RaiseException):
+                with conn.transaction():
+                    conn.execute("TRUNCATE audit_events")
+            assert conn.execute("SELECT count(*) AS count FROM audit_events").fetchone()["count"] == count

@@ -41,7 +41,8 @@ def insert_message(conn, conversation_id, content):
 def create_project(data: Named, request: Request, owner=Depends(principal), conn=Depends(transaction)):
     row = conn.execute("INSERT INTO projects (name, owner_id) VALUES (%s,%s) RETURNING *",
                        (data.name, owner)).fetchone()
-    audit(conn, "project_created", request.state.trace, owner, row["project_id"])
+    audit(conn, "project_created", request.state.trace, owner, row["project_id"],
+          project=row["project_id"])
     return row
 
 
@@ -61,7 +62,8 @@ def create_conversation(data: NewConversation, request: Request, owner=Depends(p
     require_project(conn, data.project_id, owner)
     row = conn.execute("INSERT INTO conversations (project_id, title) VALUES (%s,%s) RETURNING *",
                        (data.project_id, data.title.strip())).fetchone()
-    audit(conn, "conversation_created", request.state.trace, owner, row["conversation_id"])
+    audit(conn, "conversation_created", request.state.trace, owner, row["conversation_id"],
+          project=data.project_id)
     return row
 
 
@@ -79,9 +81,10 @@ def get_conversation(conversation_id: UUID, owner=Depends(principal), conn=Depen
 
 @router.post("/conversations/{conversation_id}/messages", response_model=Message, status_code=201)
 def append(conversation_id: UUID, data: NewMessage, request: Request, owner=Depends(principal), conn=Depends(transaction)):
-    conversation(conn, conversation_id, owner, lock=True)
+    thread = conversation(conn, conversation_id, owner, lock=True)
     item = insert_message(conn, conversation_id, data.content)
-    audit(conn, "message_appended", request.state.trace, owner, item["message_id"])
+    audit(conn, "message_appended", request.state.trace, owner, item["message_id"],
+          project=thread["project_id"])
     return item
 
 
