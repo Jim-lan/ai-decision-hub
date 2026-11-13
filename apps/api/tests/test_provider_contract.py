@@ -50,6 +50,7 @@ def capabilities() -> ModelCapabilities:
 def request(model_id: str = "fixture-model") -> GenerationRequest:
     return GenerationRequest(
         attempt_id=uuid4(),
+        grant_id=uuid4(),
         provider_id="fixture",
         requested_model_id=model_id,
         model_visible_input="Synthetic non-sensitive prompt",

@@ -2,6 +2,8 @@ from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 from app.db import connect
+from app.runs import LegacyStart, Target
+from app.security import digest
 
 
 def start(client, thread):
@@ -103,3 +105,76 @@ def test_expired_manual_target_preserves_original(client, thread):
     assert client.post(path+"/manual-responses", json={"target_id":run["targets"][1]["target_id"], "content":"late"}).status_code == 409
     assert len(client.get(path+"/responses").json()) == 1
     assert client.get(f"/v1/runs/{uuid4()}/responses").status_code == 404
+
+
+def test_normalized_replay_defaults_and_context_order_are_stable(client, thread):
+    source_ids = []
+    for content in ("First selected source", "Second selected source"):
+        source_ids.append(client.post(
+            f"/v1/conversations/{thread['conversation_id']}/messages",
+            json={"content": content},
+        ).json()["message_id"])
+    key = str(uuid4())
+    body = {
+        "conversation_id": thread["conversation_id"],
+        "question": "Normalized request",
+        "model_targets": [{"provider": "manual", "model_id": "Manual A"}],
+        "context_message_ids": source_ids,
+    }
+    created = client.post("/v1/runs", headers={"Idempotency-Key": key}, json=body)
+    assert created.status_code == 202
+    explicit_defaults = client.post("/v1/runs", headers={"Idempotency-Key": key}, json={
+        **body, "deadline_seconds": 86400, "context_message_ids": source_ids,
+    })
+    assert explicit_defaults.status_code == 202
+    assert explicit_defaults.json()["run_id"] == created.json()["run_id"]
+    reversed_sources = client.post("/v1/runs", headers={"Idempotency-Key": key}, json={
+        **body, "context_message_ids": list(reversed(source_ids)),
+    })
+    assert reversed_sources.status_code == 409
+    with connect() as conn:
+        stored = conn.execute(
+            """SELECT request_schema_version,normalized_request FROM runs
+                WHERE run_id=%s""", (created.json()["run_id"],),
+        ).fetchone()
+        selected = conn.execute(
+            """SELECT message_id FROM run_context_sources WHERE run_id=%s
+                ORDER BY position""", (created.json()["run_id"],),
+        ).fetchall()
+    assert stored["request_schema_version"] == 1
+    assert stored["normalized_request"]["deadline_seconds"] == 86400
+    assert [str(row["message_id"]) for row in selected] == source_ids
+    assert client.post("/v1/runs", headers={"Idempotency-Key": str(uuid4())}, json={
+        **body, "max_cost_microusd": None,
+    }).status_code == 422
+    assert client.post("/v1/runs", headers={"Idempotency-Key": str(uuid4())}, json={
+        **body, "max_cost_micro_usd": 10,
+    }).status_code == 422
+
+
+def test_legacy_run_key_replays_only_with_legacy_defaults(client, thread):
+    key = str(uuid4())
+    body = {
+        "conversation_id": thread["conversation_id"],
+        "question": "Legacy replay",
+        "model_targets": [{"provider": "manual", "model_id": "Legacy model"}],
+    }
+    created = client.post("/v1/runs", headers={"Idempotency-Key": key}, json=body)
+    assert created.status_code == 202
+    legacy = LegacyStart(
+        conversation_id=thread["conversation_id"], question=body["question"],
+        model_targets=[Target(**body["model_targets"][0])],
+    )
+    with connect() as conn:
+        conn.execute(
+            """UPDATE runs SET request_schema_version=0,normalized_request=NULL,
+                request_hash=%s WHERE run_id=%s""",
+            (digest(legacy.model_dump_json()), created.json()["run_id"]),
+        )
+    assert client.post(
+        "/v1/runs", headers={"Idempotency-Key": key}, json=body,
+    ).status_code == 202
+    assert client.post(
+        "/v1/runs", headers={"Idempotency-Key": key},
+        json={**body, "deadline_seconds": 60},
+    ).status_code == 409

@@ -164,13 +164,20 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0006_identity_constraints"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0007_context_budget"
             known = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
                 WHERE event_id=%s""", (known_event,)).fetchone()
             assert known == {"schema_version": 1, "project_id": ids["project"], "outcome": "accepted"}
             legacy = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
                 WHERE event_id=%s""", (ids["audit"],)).fetchone()
             assert legacy == {"schema_version": 0, "project_id": None, "outcome": "unknown"}
+            request = conn.execute("""SELECT request_schema_version,normalized_request,
+                max_cost_microusd FROM runs WHERE run_id=%s""", (ids["run"],)).fetchone()
+            assert request == {
+                "request_schema_version": 0,
+                "normalized_request": None,
+                "max_cost_microusd": None,
+            }
             old_denied = uuid4()
             old_success = uuid4()
             conn.execute("""INSERT INTO audit_events
@@ -218,7 +225,7 @@ def test_provider_identity_migration_preserves_unknown_history_and_freezes_snaps
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0006_identity_constraints"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0007_context_budget"
             manual = conn.execute("""SELECT acquisition_mode, app_name, configured_model_id,
                 model_family, capabilities, pricing_status, privacy_profile, pricing_version,
                 identity_confidence FROM provider_models

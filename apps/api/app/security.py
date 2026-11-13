@@ -54,6 +54,9 @@ def bootstrap():
             if len(password) < 12:
                 raise ValueError("Use at least twelve characters for the owner password")
             conn.execute("INSERT INTO users (login, password_hash) VALUES ('owner', %s)", (hasher.hash(password),))
+        conn.execute("""INSERT INTO owner_budget_policies (owner_id,policy_version)
+            SELECT user_id,'default-zero-v1' FROM users WHERE login='owner'
+            ON CONFLICT (owner_id) DO NOTHING""")
 
 
 def principal(request: Request, conn=Depends(transaction)) -> UUID:

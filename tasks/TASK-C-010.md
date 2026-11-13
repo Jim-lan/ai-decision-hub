@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Ready |
+| Status | Done · independently reviewed November 13, 2026 |
 | Milestone | P0-M1 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-013, FR-014, FR-015, FR-018, NFR-004, NFR-005, NFR-013 |
@@ -32,3 +32,7 @@ C-007 and C-009 depend on preflight before dispatch. Switch outbound off and rec
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion record
+
+Revision `0007_context_budget` and the PostgreSQL policy adapters implement the approved context, budget, dispatch-authorization, replay, and usage boundaries without enabling an official provider or network fan-out. The final suite passed 40 PostgreSQL tests, the fresh vanilla migration ran twice, all pinned quality/contract gates passed, and a separate reviewer reported no remaining blocking or major issue. Detailed evidence and integration constraints are in `docs/test-reports/C-010.md`. No Change Request was required.

@@ -123,6 +123,23 @@ class Run(BaseModel):
     links: dict[str, str]
 
 
+class UsageWindow(BaseModel):
+    cap_microusd: NonNegativeInt
+    reserved_microusd: NonNegativeInt
+    held_microusd: NonNegativeInt
+    settled_microusd: NonNegativeInt
+    input_tokens: NonNegativeInt | None
+    output_tokens: NonNegativeInt | None
+
+
+class Usage(BaseModel):
+    currency: Literal["USD"]
+    as_of: datetime
+    day: UsageWindow
+    month: UsageWindow
+    run: UsageWindow | None
+
+
 class StoredOriginal(BaseModel):
     response_id: UUID
     target_id: UUID

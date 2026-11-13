@@ -822,11 +822,34 @@
         "type": "object"
       },
       "Start": {
+        "additionalProperties": false,
         "properties": {
+          "context_message_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Context Message Ids",
+            "type": "array",
+            "uniqueItems": true
+          },
           "conversation_id": {
             "format": "uuid",
             "title": "Conversation Id",
             "type": "string"
+          },
+          "deadline_seconds": {
+            "default": 86400,
+            "maximum": 86400.0,
+            "minimum": 1.0,
+            "title": "Deadline Seconds",
+            "type": "integer"
+          },
+          "max_cost_microusd": {
+            "minimum": 0.0,
+            "title": "Max Cost Microusd",
+            "type": "integer"
           },
           "model_targets": {
             "items": {
@@ -927,6 +950,7 @@
         "type": "object"
       },
       "Target": {
+        "additionalProperties": false,
         "properties": {
           "model_id": {
             "maxLength": 160,
@@ -999,6 +1023,103 @@
           "status"
         ],
         "title": "TargetStatus",
+        "type": "object"
+      },
+      "Usage": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "currency": {
+            "const": "USD",
+            "title": "Currency",
+            "type": "string"
+          },
+          "day": {
+            "$ref": "#/components/schemas/UsageWindow"
+          },
+          "month": {
+            "$ref": "#/components/schemas/UsageWindow"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UsageWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency",
+          "as_of",
+          "day",
+          "month",
+          "run"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
+      "UsageWindow": {
+        "properties": {
+          "cap_microusd": {
+            "minimum": 0.0,
+            "title": "Cap Microusd",
+            "type": "integer"
+          },
+          "held_microusd": {
+            "minimum": 0.0,
+            "title": "Held Microusd",
+            "type": "integer"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "reserved_microusd": {
+            "minimum": 0.0,
+            "title": "Reserved Microusd",
+            "type": "integer"
+          },
+          "settled_microusd": {
+            "minimum": 0.0,
+            "title": "Settled Microusd",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cap_microusd",
+          "reserved_microusd",
+          "held_microusd",
+          "settled_microusd",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "UsageWindow",
         "type": "object"
       },
       "ValidationError": {
@@ -1782,6 +1903,53 @@
           }
         },
         "summary": "Originals"
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "operationId": "usage_v1_usage_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Usage"
       }
     }
   }
