@@ -164,7 +164,7 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0007_context_budget"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0008_run_lifecycle"
             known = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
                 WHERE event_id=%s""", (known_event,)).fetchone()
             assert known == {"schema_version": 1, "project_id": ids["project"], "outcome": "accepted"}
@@ -178,6 +178,24 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
                 "normalized_request": None,
                 "max_cost_microusd": None,
             }
+            lifecycle = conn.execute("""SELECT run.state AS run_state,
+                run.revision, target.state AS target_state, work.state AS work_state
+                FROM runs run
+                JOIN run_targets target ON target.run_id=run.run_id
+                JOIN run_work work ON work.run_id=run.run_id
+                WHERE run.run_id=%s""", (ids["run"],)).fetchone()
+            assert lifecycle == {
+                "run_state": "synthesizing", "revision": 1,
+                "target_state": "succeeded", "work_state": "finished",
+            }
+            attempt_id = uuid4()
+            conn.execute("""INSERT INTO provider_attempts (
+                attempt_id,run_id,target_id,attempt_no,work_fence,state,request_hash
+            ) VALUES (%s,%s,%s,1,1,'prepared',%s)""",
+                (attempt_id, ids["run"], ids["target"], "a" * 64))
+            with pytest.raises(psycopg.errors.RaiseException):
+                with conn.transaction():
+                    conn.execute("DELETE FROM provider_attempts WHERE attempt_id=%s", (attempt_id,))
             old_denied = uuid4()
             old_success = uuid4()
             conn.execute("""INSERT INTO audit_events
@@ -225,7 +243,7 @@ def test_provider_identity_migration_preserves_unknown_history_and_freezes_snaps
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0007_context_budget"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0008_run_lifecycle"
             manual = conn.execute("""SELECT acquisition_mode, app_name, configured_model_id,
                 model_family, capabilities, pricing_status, privacy_profile, pricing_version,
                 identity_confidence FROM provider_models

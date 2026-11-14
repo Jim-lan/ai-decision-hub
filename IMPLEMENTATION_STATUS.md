@@ -23,6 +23,7 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | C-010 context, replay, budget and dispatch authorization | Checkpoint message `C-010 guard context replay and spend` adds exact provider-specific sanitized projections, versioned replay compatibility, conservative atomic reservations, UTC/Pacific quota windows, authoritative post-lock clocks, one-shot durable grants/claims, held unknown-delivery liabilities, evidence-safe reconciliation, default-zero owner policy, and `/v1/usage` through forward revision `0007_context_budget`. The final PostgreSQL suite passed 40 tests; fresh vanilla migration, contract/quality gates, and separate re-review passed. See `docs/test-reports/C-010.md`. | Complete; C-007 is next, no CR |
 | C-007 disabled Gemini adapter | Checkpoint message `C-007 add disabled Gemini adapter` adds the pinned official SDK behind ProviderPort, fail-closed qualification, a required C-010 authorization claim committed before transport, hardened one-request routing, truthful identity/usage mapping, and raw-receipt observation for C-009. The final PostgreSQL suite passed 70 tests; fresh vanilla migration, rebuilt runtime health/contract checks, quality gates, and separate re-review passed. See `docs/test-reports/C-007.md`. | Complete; live activation remains blocked pending owner qualification and smoke approval; C-008 is next, no CR |
 | C-008 exact manual originals | Checkpoint message `C-008 preserve manual originals` adds the RunRepository seam, owner-scoped run/target locking, exact content and digest preservation, truthful user-declared provenance, stable concurrent replay, deadline recovery, wrong-kind rejection, and the canonical response contract. The final PostgreSQL suite passed 71 tests; runtime health/contract, quality gates, and separate re-review passed. See `docs/test-reports/C-008.md`. | Complete; C-009 is next, no CR |
+| C-009 durable lifecycle foundation | In-progress checkpoint message `C-009 add durable lifecycle foundation` adds forward revision `0008_run_lifecycle`, canonical guarded run/target state, immutable ordered events, fenced work leases, manual parking, cancellation/deadline settlement, canonical polling/cancel contracts, and a deterministic concurrent-import barrier. The PostgreSQL suite passed 73 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Official fan-out, dispatch/crash recovery, synthesis, full transition coverage, and separate review remain. No CR. |
 
 ## Current handoff
 
@@ -53,6 +54,19 @@ closed. The complete PostgreSQL suite passed 71 tests; quality/contract gates, r
 runtime contract/health, and separate re-review passed. Evidence is recorded in
 `docs/test-reports/C-008.md`. C-009 is next; 9 of 15 P0 implementation cards are
 complete. C-009 owns lifecycle/terminal freeze and its deterministic collision gate.
+
+C-009 now has a validated, recoverable lifecycle foundation. Forward revision
+`0008_run_lifecycle` backfills existing runs, protects canonical transitions and
+terminal state, and introduces immutable sequence-ordered events, fenced work leases,
+and durable provider-attempt evidence. Run creation, manual import, polling, deadline
+settlement, and idempotent cancellation exercise that state. A worker entry point safely
+leases and parks manual-only runs; it intentionally rolls back if it encounters an
+official target because the complete authorization/attempt/fan-out sequence is still
+outstanding. The complete PostgreSQL suite passed 73 tests and all local quality and
+contract gates passed. This remains C-009 in progress, so the count stays 9 of 15. Resume
+with official-provider prepared attempts, grant-bound dispatch, unknown-delivery crash
+recovery, synthesis handoff, remaining lifecycle edges, and separate review. Evidence
+and exact recovery scope are in `docs/test-reports/C-009-lifecycle-checkpoint.md`.
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 

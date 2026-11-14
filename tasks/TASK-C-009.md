@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting prerequisite evidence |
+| Status | In progress · lifecycle foundation checkpoint validated |
 | Milestone | P0-M2 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-003, FR-005, FR-014, NFR-002, NFR-007, NFR-014 |
@@ -22,6 +22,24 @@ Use the tagged traceability matrix, architecture, OpenAPI, test matrix and merge
 ## Acceptance and verification
 
 Three-target fixture delivers completed, timeout and pending manual entries independently. Kill worker before and after external dispatch. Restart never resends ambiguous billable requests. Every terminal state and transition has a test. Run the assertions in the named matrix cases that exercise this card’s deliverables, using fixtures for later dependencies. Run isolated unit and contract checks for modified ports and PostgreSQL integration for durable changes. At each milestone rerun the preceding completed slice. The full cross-feature cases remain open until their integration checkpoint. Record command, revision, sanitized outputs and CI URL. Completion requires passing evidence and reviewer sign-off.
+
+## In-progress checkpoint · November 14, 2026
+
+The first implementation checkpoint adds forward migration `0008_run_lifecycle`,
+canonical run/target state fields, database transition guards, immutable ordered events,
+fenced worker leases, cancellation/deadline settlement, and a worker that safely parks
+manual-only runs. Run creation and manual import now publish their lifecycle evidence in
+the same transaction. The public runtime contract includes canonical state, event
+polling, and cancellation. The run repository depends on the frozen `BudgetPort` seam;
+concrete PostgreSQL wiring remains at the application boundary.
+
+This checkpoint is not task completion. Official-provider fan-out, prepared-attempt and
+dispatch-grant orchestration, crash recovery before/after dispatch, synthesis handoff,
+the complete S01–S15/T01–T14 transition matrix, the named three-target fixture, and
+separate reviewer sign-off remain outstanding. The worker deliberately rolls back an
+official target claim rather than dispatching through an incomplete sequence. See
+`docs/test-reports/C-009-lifecycle-checkpoint.md` for executed evidence and recovery
+instructions.
 
 ## Integration and recovery
 

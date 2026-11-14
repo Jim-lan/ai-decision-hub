@@ -42,6 +42,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
+  worker:
+    <<: *api
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: ["python", "-m", "app.worker"]
   web:
     build:
       context: .

@@ -7,6 +7,39 @@ from pydantic import BaseModel, Field, field_validator
 
 NonBlank160 = Annotated[str, Field(min_length=1, max_length=160, pattern=r"\S")]
 NonNegativeInt = Annotated[int, Field(ge=0)]
+FailureCode = Literal[
+    "disabled",
+    "policy_denied",
+    "budget_denied",
+    "quota_denied",
+    "timeout",
+    "cancelled",
+    "provider_error",
+    "delivery_unknown",
+    "invalid_response",
+    "internal_error",
+]
+RunState = Literal[
+    "queued",
+    "running",
+    "awaiting_manual",
+    "synthesizing",
+    "completed",
+    "completed_partial",
+    "failed",
+    "cancelled",
+]
+TargetState = Literal[
+    "pending",
+    "in_flight",
+    "awaiting_manual",
+    "blocked",
+    "timed_out",
+    "cancelled",
+    "succeeded",
+    "failed",
+    "delivery_unknown",
+]
 
 
 class Login(BaseModel):
@@ -110,17 +143,83 @@ class TargetStatus(BaseModel):
     routing_mode: str
     response_id: UUID | None
     status: str
+    state: TargetState
+    attempt_no: NonNegativeInt
+    error_code: FailureCode | None
+    context_snapshot_id: UUID | None
 
 
 class Run(BaseModel):
     run_id: UUID
+    project_id: UUID
     conversation_id: UUID
     message_id: UUID
     created_at: datetime
     deadline: datetime
     status: str
+    state: RunState
     targets: list[TargetStatus]
     links: dict[str, str]
+    comparison_id: UUID | None
+    error_code: FailureCode | None
+
+
+class RunStateEvent(BaseModel):
+    schema_version: Literal[1]
+    created_at: datetime
+    event_id: UUID
+    run_id: UUID
+    sequence: int = Field(ge=1)
+    trace_id: UUID
+    kind: Literal["run_state"]
+    previous: RunState | None
+    state: RunState
+
+
+class TargetStateEvent(BaseModel):
+    schema_version: Literal[1]
+    created_at: datetime
+    event_id: UUID
+    run_id: UUID
+    sequence: int = Field(ge=1)
+    trace_id: UUID
+    kind: Literal["target_state"]
+    target_id: UUID
+    previous: TargetState | None
+    state: TargetState
+    reason: FailureCode | None
+
+
+class OriginalSavedEvent(BaseModel):
+    schema_version: Literal[1]
+    created_at: datetime
+    event_id: UUID
+    run_id: UUID
+    sequence: int = Field(ge=1)
+    trace_id: UUID
+    kind: Literal["original_saved"]
+    target_id: UUID
+    response_id: UUID
+
+
+class ReportPublishedEvent(BaseModel):
+    schema_version: Literal[1]
+    created_at: datetime
+    event_id: UUID
+    run_id: UUID
+    sequence: int = Field(ge=1)
+    trace_id: UUID
+    kind: Literal["report_published"]
+    comparison_id: UUID
+    version: int = Field(ge=1)
+
+
+RunEvent = RunStateEvent | TargetStateEvent | OriginalSavedEvent | ReportPublishedEvent
+
+
+class Events(BaseModel):
+    items: list[RunEvent]
+    next_after: NonNegativeInt
 
 
 class UsageWindow(BaseModel):

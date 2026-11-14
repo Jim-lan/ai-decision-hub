@@ -240,6 +240,7 @@ class RepositoryConflict(Exception):
 
 @dataclass(frozen=True)
 class ManualOriginalCommand:
+    trace_id: UUID
     owner_id: UUID
     run_id: UUID
     target_id: UUID
@@ -254,6 +255,16 @@ class ManualOriginalResult:
     original: Mapping[str, object]
     project_id: UUID
     created: bool
+
+
+@dataclass(frozen=True)
+class WorkClaim:
+    run_id: UUID
+    owner_id: UUID
+    project_id: UUID
+    lease_token: UUID
+    fence: int
+    deadline: datetime
 
 
 @runtime_checkable
@@ -304,6 +315,24 @@ class RunRepository(Protocol):
     def list_originals(
         self, run_id: UUID, owner_id: UUID
     ) -> list[Mapping[str, object]]: ...
+
+    def list_events(
+        self, run_id: UUID, owner_id: UUID, after: int, limit: int
+    ) -> list[Mapping[str, object]]: ...
+
+    def settle_deadline(
+        self, run_id: UUID, owner_id: UUID, trace_id: UUID
+    ) -> Mapping[str, object]: ...
+
+    def cancel_run(
+        self, run_id: UUID, owner_id: UUID, trace_id: UUID
+    ) -> Mapping[str, object]: ...
+
+    def claim_work(
+        self, worker_id: str, trace_id: UUID, lease_seconds: int
+    ) -> WorkClaim | None: ...
+
+    def park_manual_work(self, claim: WorkClaim, trace_id: UUID) -> bool: ...
 
     def import_manual_original(
         self, command: ManualOriginalCommand

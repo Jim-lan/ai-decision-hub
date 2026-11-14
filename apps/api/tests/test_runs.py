@@ -1,10 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+from threading import Barrier
 from uuid import uuid4
+
+import psycopg
+import pytest
 
 from app.db import connect
 from app.runs import LegacyStart, Target
 from app.security import digest
+from app.worker import RunWorker
 
 
 def start(client, thread):
@@ -25,6 +30,12 @@ def test_two_originals_retry_and_conflict(client, thread):
     run = start(client, thread)
     path = f"/v1/runs/{run['run_id']}"
     assert run["status"] == "awaiting_manual"
+    assert run["state"] == "queued"
+    assert run["project_id"] == thread["project_id"]
+    assert run["comparison_id"] is None
+    assert run["error_code"] is None
+    assert set(run["links"]) == {"status", "responses", "report", "events"}
+    assert all(target["state"] == "awaiting_manual" for target in run["targets"])
     providers = {item["provider_id"]: item for item in client.get("/v1/providers").json()}
     assert providers["manual"] == {
         "provider_id": "manual", "alias": "user-declared", "gateway": "manual",
@@ -46,8 +57,14 @@ def test_two_originals_retry_and_conflict(client, thread):
         }
         if position:
             data["declared_model_id"] = "Declared fixture model"
+        barrier = Barrier(2)
+
+        def paste(_):
+            barrier.wait()
+            return client.post(path + "/manual-responses", json=data)
+
         with ThreadPoolExecutor(max_workers=2) as pool:
-            res = list(pool.map(lambda _:client.post(path+"/manual-responses", json=data), range(2)))
+            res = list(pool.map(paste, range(2)))
         assert all(r.status_code == 201 for r in res)
         assert res[0].json()["response_id"] == res[1].json()["response_id"]
         original = res[0].json()
@@ -90,7 +107,10 @@ def test_two_originals_retry_and_conflict(client, thread):
                 (original["response_id"],),
             ).fetchone()["count"]
         assert event_count == 1
-    assert client.get(path).json()["status"] == "complete"
+    collected = client.get(path).json()
+    assert collected["status"] == "running"
+    assert collected["state"] == "synthesizing"
+    assert all(target["state"] == "succeeded" for target in collected["targets"])
     rows = client.get(path+"/responses").json()
     assert len(rows) == 2
     assert all(
@@ -100,6 +120,22 @@ def test_two_originals_retry_and_conflict(client, thread):
     )
     assert all(r["resolved_provider_id"] is None and r["resolved_model_id"] is None for r in rows)
     assert all(r["attempt_no"] == 0 and r["inclusion"] == "included" for r in rows)
+    first_page = client.get(path + "/events", params={"limit": 4}).json()
+    assert [item["sequence"] for item in first_page["items"]] == [1, 2, 3, 4]
+    second_page = client.get(
+        path + "/events", params={"after": first_page["next_after"], "limit": 100}
+    ).json()
+    events = first_page["items"] + second_page["items"]
+    assert [item["sequence"] for item in events] == list(range(1, 10))
+    assert [item["kind"] for item in events].count("original_saved") == 2
+    assert [item["state"] for item in events if item["kind"] == "run_state"] == [
+        "queued",
+        "running",
+        "synthesizing",
+    ]
+    assert client.get(
+        path + "/events", params={"after": second_page["next_after"]}
+    ).json() == {"items": [], "next_after": 9}
 
 
 def test_disabled_provider_is_visible_but_cannot_create_business_rows(client, thread):
@@ -159,7 +195,13 @@ def test_expired_manual_target_preserves_original(client, thread):
     assert created.status_code == 201
     with connect() as conn:
         conn.execute("UPDATE runs SET deadline=now()-interval '1 minute' WHERE run_id=%s", (run["run_id"],))
-    assert client.get(path).json()["status"] == "partial_complete"
+    expired = client.get(path).json()
+    assert expired["status"] == "running"
+    assert expired["state"] == "synthesizing"
+    assert {target["state"] for target in expired["targets"]} == {
+        "succeeded",
+        "timed_out",
+    }
     replay = client.post(path+"/manual-responses", json=original_data)
     assert replay.status_code == 201
     assert replay.json()["response_id"] == created.json()["response_id"]
@@ -170,6 +212,66 @@ def test_expired_manual_target_preserves_original(client, thread):
     assert client.post(path+"/manual-responses", json={"target_id":run["targets"][1]["target_id"], "content":"late"}).status_code == 409
     assert len(client.get(path+"/responses").json()) == 1
     assert client.get(f"/v1/runs/{uuid4()}/responses").status_code == 404
+
+
+def test_cancel_is_idempotent_and_freezes_run(client, thread):
+    run = start(client, thread)
+    path = f"/v1/runs/{run['run_id']}"
+    cancelled = client.post(path + "/cancel")
+    assert cancelled.status_code == 200
+    body = cancelled.json()
+    assert body["state"] == "cancelled"
+    assert body["status"] == "failed"
+    assert body["error_code"] == "cancelled"
+    assert all(target["state"] == "cancelled" for target in body["targets"])
+    replay = client.post(path + "/cancel")
+    assert replay.status_code == 200
+    assert replay.json()["state"] == "cancelled"
+    target = run["targets"][0]
+    assert client.post(
+        path + "/manual-responses",
+        json={"target_id": target["target_id"], "content": "too late"},
+    ).status_code == 409
+    events = client.get(path + "/events").json()["items"]
+    assert [event["sequence"] for event in events] == list(range(1, len(events) + 1))
+    assert events[-1]["kind"] == "run_state"
+    assert events[-1]["state"] == "cancelled"
+    with connect() as conn:
+        with pytest.raises(psycopg.errors.RaiseException):
+            with conn.transaction():
+                conn.execute(
+                    """UPDATE runs SET state='running',revision=revision+1,
+                              terminal_at=NULL,error_code=NULL WHERE run_id=%s""",
+                    (run["run_id"],),
+                )
+
+
+def test_worker_leases_and_parks_manual_run_once(client, thread):
+    run = start(client, thread)
+    worker = RunWorker("fixture-worker", lease_seconds=10)
+    for _ in range(20):
+        worker.run_once()
+        parked = client.get(f"/v1/runs/{run['run_id']}").json()
+        if parked["state"] == "awaiting_manual":
+            break
+    assert parked["state"] == "awaiting_manual"
+    assert parked["status"] == "awaiting_manual"
+    with connect() as conn:
+        work = conn.execute(
+            "SELECT * FROM run_work WHERE run_id=%s", (run["run_id"],)
+        ).fetchone()
+    assert work["state"] == "waiting"
+    assert work["fence"] == 1
+    assert work["lease_token"] is None
+    assert work["lease_expires_at"] is None
+    assert work["worker_id"] is None
+    assert worker.run_once() is False
+    states = [
+        event["state"]
+        for event in client.get(f"/v1/runs/{run['run_id']}/events").json()["items"]
+        if event["kind"] == "run_state"
+    ]
+    assert states == ["queued", "running", "awaiting_manual"]
 
 
 def test_manual_import_hides_foreign_run_and_rejects_official_target(client, thread):
