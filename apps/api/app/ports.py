@@ -267,6 +267,15 @@ class WorkClaim:
     deadline: datetime
 
 
+@dataclass(frozen=True)
+class DispatchWork:
+    run_id: UUID
+    target_id: UUID
+    reservation_id: UUID
+    attempt_id: UUID
+    request: GenerationRequest
+
+
 @runtime_checkable
 class ConversationRepository(Protocol):
     """Canonical owner/project/conversation/message persistence boundary."""
@@ -333,6 +342,10 @@ class RunRepository(Protocol):
     ) -> WorkClaim | None: ...
 
     def park_manual_work(self, claim: WorkClaim, trace_id: UUID) -> bool: ...
+
+    def prepare_next_dispatch(
+        self, claim: WorkClaim, trace_id: UUID
+    ) -> DispatchWork | None: ...
 
     def import_manual_original(
         self, command: ManualOriginalCommand

@@ -1,8 +1,8 @@
 # Task backlog
 
-**Next action: continue [C-009](tasks/TASK-C-009.md) from the validated lifecycle and
-pre-send fencing checkpoints; implement independent transport fan-out, receipt
-persistence, and post-claim unknown-delivery recovery under the approved freeze.**
+**Next action: continue [C-009](tasks/TASK-C-009.md) from the validated lifecycle,
+pre-send fencing, and prepared-attempt checkpoints; execute providers outside the
+transaction, then persist receipts/outcomes and post-claim recovery under the freeze.**
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|
@@ -16,7 +16,7 @@ persistence, and post-claim unknown-delivery recovery under the approved freeze.
 | G2/G3 · implement and integrate | C-001 through C-008 and C-010 complete; C-009 in progress | Task evidence is in `docs/test-reports/`. The validated C-009 lifecycle foundation is not task completion. Continue its official fan-out/crash-recovery slice next and record every integration gate. |
 | G4 · release | Pending integration and owner acceptance | End-to-end decision, privacy/budget/partial failure, portable export, encrypted restore and rollback evidence. |
 
-Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 through C-008 and C-010 are complete and C-009 is in progress, so 9 of 15 cards are complete. Its checkpoints supply guarded durable lifecycle state, ordered events, fenced leases, manual parking, cancellation/deadline settlement, the deterministic concurrent-import collision gate, and reservation-level one-send enforcement across safe pre-claim recovery. It does not yet supply transport fan-out, receipt/post-claim crash recovery, synthesis, full transition coverage, or reviewer sign-off. C-007's live-provider qualification remains a G4 owner-evidence gate and does not enable dispatch. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.
+Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 through C-008 and C-010 are complete and C-009 is in progress, so 9 of 15 cards are complete. Its checkpoints supply guarded durable lifecycle state, ordered events, fenced leases, manual parking, cancellation/deadline settlement, deterministic import collision handling, reservation-level one-send enforcement, and atomic grant-bound prepared attempts with exact frozen input. It does not yet supply provider execution, receipt/post-claim crash recovery, synthesis, full transition coverage, or reviewer sign-off. C-007's live-provider qualification remains a G4 owner-evidence gate and does not enable dispatch. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.
 
 When finishing a task, enter its result, evidence, blockers and next eligible task here or in the linked card, then update IMPLEMENTATION_STATUS.md. Keep DESIGN_BASELINE.md synchronized with gate and CR changes.
 

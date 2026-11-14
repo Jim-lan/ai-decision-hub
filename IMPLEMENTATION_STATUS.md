@@ -23,7 +23,7 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | C-010 context, replay, budget and dispatch authorization | Checkpoint message `C-010 guard context replay and spend` adds exact provider-specific sanitized projections, versioned replay compatibility, conservative atomic reservations, UTC/Pacific quota windows, authoritative post-lock clocks, one-shot durable grants/claims, held unknown-delivery liabilities, evidence-safe reconciliation, default-zero owner policy, and `/v1/usage` through forward revision `0007_context_budget`. The final PostgreSQL suite passed 40 tests; fresh vanilla migration, contract/quality gates, and separate re-review passed. See `docs/test-reports/C-010.md`. | Complete; C-007 is next, no CR |
 | C-007 disabled Gemini adapter | Checkpoint message `C-007 add disabled Gemini adapter` adds the pinned official SDK behind ProviderPort, fail-closed qualification, a required C-010 authorization claim committed before transport, hardened one-request routing, truthful identity/usage mapping, and raw-receipt observation for C-009. The final PostgreSQL suite passed 70 tests; fresh vanilla migration, rebuilt runtime health/contract checks, quality gates, and separate re-review passed. See `docs/test-reports/C-007.md`. | Complete; live activation remains blocked pending owner qualification and smoke approval; C-008 is next, no CR |
 | C-008 exact manual originals | Checkpoint message `C-008 preserve manual originals` adds the RunRepository seam, owner-scoped run/target locking, exact content and digest preservation, truthful user-declared provenance, stable concurrent replay, deadline recovery, wrong-kind rejection, and the canonical response contract. The final PostgreSQL suite passed 71 tests; runtime health/contract, quality gates, and separate re-review passed. See `docs/test-reports/C-008.md`. | Complete; C-009 is next, no CR |
-| C-009 durable lifecycle and pre-send recovery | In-progress checkpoint messages `C-009 add durable lifecycle foundation` and `C-009 fence pre-send recovery` add revisions `0008_run_lifecycle` and `0009_attempt_fencing`: canonical guarded lifecycle, ordered events, fenced leases, manual parking, cancellation/deadline settlement, and reservation-level one-send enforcement across recovered unclaimed grants. The PostgreSQL suite passed 74 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Network fan-out, receipt/post-claim crash handling, synthesis, full transition coverage, and separate review remain. No CR. |
+| C-009 durable lifecycle and dispatch preparation | In-progress checkpoint messages `C-009 add durable lifecycle foundation`, `C-009 fence pre-send recovery`, and `C-009 prepare fenced dispatch attempts` add revisions `0008_run_lifecycle` and `0009_attempt_fencing`, guarded lifecycle/events/leases, reservation-level one-send enforcement, and atomic grant-bound attempt preparation with exact frozen input. The PostgreSQL suite passed 75 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Provider execution, receipt/post-claim crash handling, synthesis, full transition coverage, and separate review remain. No CR. |
 
 ## Current handoff
 
@@ -78,6 +78,15 @@ the only grant identity. The complete PostgreSQL suite now passes 74 tests. C-00
 in progress at 9 of 15 cards; continue with actual independent network fan-out, receipt
 persistence, post-claim unknown-delivery recovery, synthesis, transition completeness,
 and separate review.
+
+The prepared-attempt checkpoint adds a transport-neutral `DispatchWork` contract and
+atomic repository operation. Under the current unexpired worker fence it revalidates
+the C-010 reservation/context, persists the immutable grant-bound attempt, advances T03,
+and returns the exact provider-visible input without claiming dispatch or crossing the
+network inside the transaction. The complete suite now passes 75 tests. C-009 remains
+in progress; wire the provider execution outside the transaction, persist raw receipt
+and normalized outcome, handle post-claim unknown delivery, then complete synthesis and
+the remaining transition/review gates.
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 

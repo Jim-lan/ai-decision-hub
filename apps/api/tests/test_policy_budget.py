@@ -10,6 +10,7 @@ from app.adapters.postgres_policy import (
     PostgresBudgetPort as _PostgresBudgetPort,
     PostgresContextPort,
 )
+from app.adapters.postgres_runs import PostgresRunRepository
 from app.db import connect
 from app.ports import BudgetRequest, ContextRequest, GenerationRequest
 from app.security import digest
@@ -343,6 +344,50 @@ def test_unclaimed_grant_recovers_under_new_fence_without_duplicate_send(client,
             reservation.reservation_id, projection.candidate_id,
             uuid4(), uuid4(), data["at"] + timedelta(seconds=4),
         ).reason == "reservation_unavailable"
+
+
+def test_fenced_worker_prepares_attempt_before_transport(client, thread):
+    data = _official_run(client, thread)
+    with connect() as conn:
+        _allow_source(conn, data)
+        projection = PostgresContextPort(conn).prepare(_context_request(data)).projection
+        reservation = PostgresBudgetPort(conn).reserve(
+            _budget_request(data, projection),
+        ).reservation
+        conn.execute(
+            """INSERT INTO run_work (run_id,state,available_at)
+               VALUES (%s,'available',clock_timestamp())""",
+            (data["run_id"],),
+        )
+        repository = PostgresRunRepository(conn, PostgresBudgetPort(conn))
+        claim = repository.claim_work("fixture-worker", uuid4(), 30)
+        assert claim is not None
+        prepared = repository.prepare_next_dispatch(claim, uuid4())
+        assert prepared is not None
+        assert prepared.reservation_id == reservation.reservation_id
+        assert prepared.request.model_visible_input == projection.model_visible_input
+        assert prepared.request.grant_id is not None
+        target = conn.execute(
+            """SELECT state,attempt_no,context_snapshot_id FROM run_targets
+               WHERE target_id=%s""", (prepared.target_id,),
+        ).fetchone()
+        assert target == {
+            "state": "in_flight", "attempt_no": 1,
+            "context_snapshot_id": projection.candidate_id,
+        }
+        attempt = conn.execute(
+            """SELECT state,work_fence,request_hash,grant_id FROM provider_attempts
+               WHERE attempt_id=%s""", (prepared.attempt_id,),
+        ).fetchone()
+        assert attempt == {
+            "state": "prepared", "work_fence": claim.fence,
+            "request_hash": projection.request_hash,
+            "grant_id": prepared.request.grant_id,
+        }
+        assert conn.execute(
+            "SELECT count(*) AS count FROM dispatch_claims WHERE attempt_id=%s",
+            (prepared.attempt_id,),
+        ).fetchone()["count"] == 0
 
 
 def test_last_budget_unit_is_atomic_across_competing_targets(client, thread):

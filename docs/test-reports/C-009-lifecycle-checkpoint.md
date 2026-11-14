@@ -3,7 +3,7 @@
 Baseline `g1-design-v2.0` at
 `9edbcd4b9a142d107df219bc64bd6730b39689cd`. Validated November 14, 2026.
 The durable checkpoints use commit messages `C-009 add durable lifecycle foundation`
-and `C-009 fence pre-send recovery`.
+`C-009 fence pre-send recovery`, and `C-009 prepare fenced dispatch attempts`.
 This record is an in-progress recovery checkpoint, not C-009 completion or reviewer
 approval.
 
@@ -45,6 +45,15 @@ unique, so only one attempt can ever claim transport for the reservation. Author
 requires a prepared attempt bound to the current unexpired work fence. The focused
 policy/migration slice passed 17 tests and the complete PostgreSQL suite passed 74 tests.
 The same lint, strict-type, boundary, API, domain, and coverage gates passed.
+
+## Prepared-attempt evidence
+
+The repository now prepares one official target under the current lease without
+crossing the network: it revalidates context/budget, writes the grant-bound immutable
+attempt, records T03 and the context snapshot, and returns the exact
+`GenerationRequest`. The focused preparation/recovery tests passed 2 tests; the complete
+PostgreSQL suite passed 75 tests. Lint, strict typing, boundary, API, domain, and coverage
+gates passed. No live provider was enabled or called.
 
 ## Outstanding C-009 work
 

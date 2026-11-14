@@ -51,6 +51,15 @@ or unfenced attempts before transport and moves the reservation to held atomical
 the one accepted claim. The complete PostgreSQL suite passes 74 tests. Network fan-out,
 receipt persistence, post-claim crash handling, and synthesis remain outstanding.
 
+### Prepared-attempt checkpoint · November 14, 2026
+
+`RunRepository.prepare_next_dispatch` now revalidates the immutable context and reserved
+budget under the current worker lease, persists a grant-bound fenced attempt, advances
+the target from pending to in-flight with its context snapshot and attempt number, and
+returns the exact transport-neutral `GenerationRequest`. No dispatch claim or network
+call occurs in this transaction. The complete PostgreSQL suite passes 75 tests. Provider
+execution, receipt/result persistence, post-claim recovery, and synthesis remain open.
+
 ## Integration and recovery
 
 Consumes C-010 leases/reservations and publishes run events atomically. Quiesce worker and release only confirmed-unused reservations before rollback.

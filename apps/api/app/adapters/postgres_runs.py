@@ -2,10 +2,12 @@
 
 from hashlib import sha256
 from typing import Any, Mapping, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.ports import (
     BudgetPort,
+    DispatchWork,
+    GenerationRequest,
     ManualOriginalCommand,
     ManualOriginalResult,
     RepositoryConflict,
@@ -510,3 +512,97 @@ class PostgresRunRepository:
             return True
         self._finish_collection(cast(dict[str, Any], run), trace_id)
         return True
+
+    def prepare_next_dispatch(
+        self, claim: WorkClaim, trace_id: UUID
+    ) -> DispatchWork | None:
+        run = self.connection.execute(
+            "SELECT * FROM runs WHERE run_id=%s FOR UPDATE", (claim.run_id,)
+        ).fetchone()
+        work = self.connection.execute(
+            """SELECT * FROM run_work WHERE run_id=%s AND state='leased'
+               AND lease_token=%s AND fence=%s
+               AND lease_expires_at>clock_timestamp() FOR UPDATE""",
+            (claim.run_id, claim.lease_token, claim.fence),
+        ).fetchone()
+        if not run or not work or run["state"] != "running":
+            raise RepositoryConflict
+        target = self.connection.execute(
+            """SELECT target.*,context.candidate_id,context.model_visible_input,
+                      context.request_hash,reservation.reservation_id,
+                      reservation.output_token_bound
+                 FROM run_targets target
+                 JOIN prepared_contexts context USING (target_id)
+                 JOIN budget_reservations reservation USING (target_id)
+                WHERE target.run_id=%s AND target.state='pending'
+                  AND target.acquisition_mode='official_api'
+                  AND reservation.state='reserved'
+                ORDER BY target.target_id LIMIT 1 FOR UPDATE OF target""",
+            (claim.run_id,),
+        ).fetchone()
+        if not target:
+            return None
+        now = self.connection.execute(
+            "SELECT clock_timestamp() AS now"
+        ).fetchone()["now"]
+        attempt_id = uuid4()
+        decision = self.budget.revalidate_dispatch(
+            target["reservation_id"], target["candidate_id"], attempt_id,
+            trace_id, now,
+        )
+        if decision.grant is None:
+            reason = decision.reason
+            code = {
+                "registry_disabled": "disabled",
+                "provider_quota": "quota_denied",
+                "deadline": "timeout",
+                "policy_expired": "policy_denied",
+                "period_cap": "budget_denied",
+            }.get(reason or "", "internal_error")
+            self.budget.reconcile(
+                target["reservation_id"], trace_id,
+                outcome="release", proven_unsent=True,
+            )
+            state = "timed_out" if reason == "deadline" else "blocked"
+            self._transition_target(target, state, trace_id, error_code=code)
+            return None
+        grant = decision.grant
+        next_attempt = target["attempt_no"] + 1
+        self.connection.execute(
+            """INSERT INTO provider_attempts (
+                   attempt_id,run_id,target_id,attempt_no,work_fence,state,
+                   request_hash,grant_id
+               ) VALUES (%s,%s,%s,%s,%s,'prepared',%s,%s)""",
+            (
+                attempt_id, claim.run_id, target["target_id"], next_attempt,
+                claim.fence, target["request_hash"], grant.grant_id,
+            ),
+        )
+        updated = self.connection.execute(
+            """UPDATE run_targets SET state='in_flight',attempt_no=%s,
+                       context_snapshot_id=%s,error_code=NULL
+                   WHERE target_id=%s RETURNING *""",
+            (next_attempt, target["candidate_id"], target["target_id"]),
+        ).fetchone()
+        self._append_event(
+            claim.run_id, trace_id, "target_state",
+            target_id=target["target_id"], previous=target["state"],
+            state=updated["state"],
+        )
+        remaining_ms = max(1, round((claim.deadline - now).total_seconds() * 1000))
+        return DispatchWork(
+            run_id=claim.run_id,
+            target_id=target["target_id"],
+            reservation_id=target["reservation_id"],
+            attempt_id=attempt_id,
+            request=GenerationRequest(
+                attempt_id=attempt_id,
+                grant_id=grant.grant_id,
+                provider_id=target["provider"],
+                requested_model_id=target["model_id"],
+                model_visible_input=target["model_visible_input"],
+                timeout_ms=min(30_000, remaining_ms),
+                max_output_tokens=target["output_token_bound"],
+                allowed_model_ids=(target["model_id"],),
+            ),
+        )
