@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Awaiting prerequisite evidence |
+| Status | Done |
 | Milestone | P0-M1 |
 | Baseline reference | g1-design-v2.0 @ 9edbcd4b9a142d107df219bc64bd6730b39689cd |
 | Requirement IDs | FR-002, FR-004, FR-015, FR-016, NFR-010 |
@@ -32,3 +32,25 @@ Fanout consumes the same fixture contract. Disable adapter for rollback; never r
 ## Change control
 
 A change to the tagged contract opens a CR describing affected IDs, migration/compatibility, risks and regression tests. Credentials stay outside logs, Git and exports. Store actual evidence and any exception in the task record before marking it complete.
+
+## Completion evidence
+
+Completed November 14, 2026. The official `google-genai` 2.33.0 transport is isolated
+behind ProviderPort and a required C-010 AuthorizationPort. A one-shot claim becomes a
+durable held liability before transport; denied, mismatched, consumed, uncommitted, or
+newly expired grants send nothing. The transport pins the Gemini Developer API stable
+v1 host, disables redirects, environment proxies/backend selection, SDK retries,
+continuation, automatic function calls, and server-side response storage. It preserves
+unknown returned identity, maps complete prompt/candidate/thinking usage without
+inventing zeroes, and exposes raw receipts before identity validation for C-009.
+
+The focused C-007/C-010 slice passed 49 tests and the complete PostgreSQL suite passed
+70. Fresh vanilla migration, Ruff, strict typing, boundary, OpenAPI, domain, coverage,
+rebuilt runtime contract/health, and a separate adversarial review passed. See
+`docs/test-reports/C-007.md` and `docs/provider-qualifications/gemini-candidate.md`.
+
+The live adapter remains disabled. No owner project, billing tier, region, exact model,
+quota, tariff, nonzero spend ceiling, credential, or permitted live fixture was supplied.
+Those dated facts and an explicit non-sensitive smoke remain required before G4 can
+claim an operational provider. No external call, spend, Change Request, P1, or P2 work
+was introduced.

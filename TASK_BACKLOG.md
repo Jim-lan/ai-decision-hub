@@ -1,6 +1,6 @@
 # Task backlog
 
-**Next action: implement [C-007](tasks/TASK-C-007.md) under the approved freeze.**
+**Next action: implement [C-008](tasks/TASK-C-008.md) under the approved freeze.**
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|
@@ -11,10 +11,10 @@
 | G0-04 · close test links | Design complete | Complete docs/testing/test-matrix.md, account for every P0 test referenced by traceability and all allowed and denied transitions; audit card links. |
 | G0-05 · independent adversarial pass | Design complete | Fresh reviewer inspects versioned candidate, records severity, failure scenario and blocking verdict; resolve blockers and verify corrections. |
 | G1 · freeze | Approved at g1-design-v2.0 | docs/G1_FREEZE_REVIEW.md, reviewed matrix, approved ADRs, validation evidence, exact approved SHA and annotated tag. |
-| G2/G3 · implement and integrate | C-001 through C-006 and C-010 complete | Task evidence is in `docs/test-reports/`. Implement C-007 next. Record tests and integration gate at every slice. |
+| G2/G3 · implement and integrate | C-001 through C-007 and C-010 complete | Task evidence is in `docs/test-reports/`. Implement C-008 next. Record tests and integration gate at every slice. |
 | G4 · release | Pending integration and owner acceptance | End-to-end decision, privacy/budget/partial failure, portable export, encrypted restore and rollback evidence. |
 
-Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 through C-006 and C-010 are complete and C-007 is next, so 7 of 15 cards are complete. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.
+Use the [15 implementation cards and dependency order](tasks/README.md) for P0. C-001 through C-007 and C-010 are complete and C-008 is next, so 8 of 15 cards are complete. C-007's live-provider qualification remains a G4 owner-evidence gate and does not enable dispatch. The existing prototype must qualify against the same tests. Treat [the v1.2 sprint list](docs/requirements/tasks.md) and [the packaged draft backlog](tasks/P0_DELIVERY_BACKLOG.md) as historical inputs. Deferred P1/P2 work remains mapped in [traceability](docs/requirements/traceability.md); activate it only through a separate version decision.
 
 When finishing a task, enter its result, evidence, blockers and next eligible task here or in the linked card, then update IMPLEMENTATION_STATUS.md. Keep DESIGN_BASELINE.md synchronized with gate and CR changes.
 
