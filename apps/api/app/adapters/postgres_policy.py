@@ -711,7 +711,9 @@ class PostgresBudgetPort(BudgetPort):
                 return DispatchDecision(grant=None, reason="candidate_mismatch")
             return DispatchDecision(grant=_grant(replay), reason=None)
         if self.connection.execute(
-            "SELECT 1 FROM dispatch_grants WHERE reservation_id=%s", (reservation_id,),
+            """SELECT 1 FROM dispatch_claims claim
+               WHERE claim.reservation_id=%s""",
+            (reservation_id,),
         ).fetchone():
             return DispatchDecision(grant=None, reason="reservation_unavailable")
         grant = self.connection.execute(
@@ -834,13 +836,22 @@ class PostgresAuthorizationPort(AuthorizationPort):
         if as_of.tzinfo is None or request.requested_model_id not in request.allowed_model_ids:
             raise PermissionError("Dispatch grant is unavailable or does not match the request")
         grant = self.connection.execute(
-            """SELECT * FROM dispatch_grants WHERE grant_id=%s AND attempt_id=%s
-                AND provider_id=%s AND requested_model_id=%s AND input_digest=%s
-                AND output_token_bound=%s AND validated_at<=%s AND deadline>%s""",
+            """SELECT g.* FROM dispatch_grants g
+                JOIN provider_attempts attempt
+                  ON attempt.attempt_id=g.attempt_id
+                 AND attempt.grant_id=g.grant_id
+                JOIN run_work work ON work.run_id=g.run_id
+                WHERE g.grant_id=%s AND g.attempt_id=%s
+                AND g.provider_id=%s AND g.requested_model_id=%s
+                AND g.input_digest=%s AND g.output_token_bound=%s
+                AND g.validated_at<=%s AND g.deadline>%s
+                AND attempt.state='prepared'
+                AND attempt.work_fence=work.fence
+                AND work.state='leased' AND work.lease_expires_at>%s""",
             (
                 request.grant_id, request.attempt_id, request.provider_id,
                 request.requested_model_id, _digest(request.model_visible_input),
-                request.max_output_tokens, as_of, as_of,
+                request.max_output_tokens, as_of, as_of, as_of,
             ),
         ).fetchone()
         if not grant:
@@ -961,9 +972,14 @@ class PostgresAuthorizationPort(AuthorizationPort):
         ):
             raise PermissionError("Dispatch grant exceeds the current provider quota")
         claimed = self.connection.execute(
-            """INSERT INTO dispatch_claims (grant_id,attempt_id,claimed_at)
-                VALUES (%s,%s,%s) ON CONFLICT DO NOTHING RETURNING claim_id""",
-            (grant["grant_id"], grant["attempt_id"], as_of),
+            """INSERT INTO dispatch_claims (
+                    grant_id,reservation_id,attempt_id,claimed_at
+                ) VALUES (%s,%s,%s,%s)
+                ON CONFLICT DO NOTHING RETURNING claim_id""",
+            (
+                grant["grant_id"], grant["reservation_id"],
+                grant["attempt_id"], as_of,
+            ),
         ).fetchone()
         if not claimed:
             raise PermissionError("Dispatch grant has already been claimed")

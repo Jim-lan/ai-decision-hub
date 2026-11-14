@@ -2,7 +2,8 @@
 
 Baseline `g1-design-v2.0` at
 `9edbcd4b9a142d107df219bc64bd6730b39689cd`. Validated November 14, 2026.
-The durable checkpoint uses commit message `C-009 add durable lifecycle foundation`.
+The durable checkpoints use commit messages `C-009 add durable lifecycle foundation`
+and `C-009 fence pre-send recovery`.
 This record is an in-progress recovery checkpoint, not C-009 completion or reviewer
 approval.
 
@@ -28,12 +29,22 @@ approval.
 
 | Check | Result |
 |---|---|
-| Complete PostgreSQL regression suite | `pytest -q` passed 73 tests. Three warnings are upstream Starlette/websockets deprecations. Fresh isolated databases run Alembic head twice. |
+| Complete PostgreSQL regression suite | The latest `pytest -q` passed 74 tests. Three warnings are upstream Starlette/websockets deprecations. Fresh isolated databases run Alembic head twice. |
 | Lifecycle and migration coverage | Tests cover backfill, immutable provider attempts, initial and import events, paging sequence, deadline settlement, idempotent cancellation, terminal database guards, fenced lease, manual parking, and deterministic concurrent import. |
 | Lint | `ruff check apps/api/app apps/api/tests docs/testing infra/tests` passed. |
 | Strict typing | `mypy --strict --python-version 3.12` passed for ports, Gemini, PostgreSQL runs, and typed provider fakes after concrete budget wiring was moved to the composition boundary. |
 | Boundary and contracts | Provider boundary, candidate/runtime OpenAPI, incompatible fixture, domain fixtures, and coverage gates passed. Coverage reports 61 requirements, 24 P0 cases, and 15 acyclic cards. |
 | Generated contract | `contracts/openapi.json` was regenerated from current source and is checked again in the final checkpoint gate. |
+
+## Pre-send recovery evidence
+
+Forward revision `0009_attempt_fencing` removes the one-grant-per-reservation recovery
+dead end while preserving a stronger one-send invariant. Multiple immutable grants may
+exist only as recovery evidence before dispatch; `dispatch_claims.reservation_id` is
+unique, so only one attempt can ever claim transport for the reservation. Authorization
+requires a prepared attempt bound to the current unexpired work fence. The focused
+policy/migration slice passed 17 tests and the complete PostgreSQL suite passed 74 tests.
+The same lint, strict-type, boundary, API, domain, and coverage gates passed.
 
 ## Outstanding C-009 work
 
@@ -50,7 +61,8 @@ approval.
 ## Recovery and rollback
 
 Resume from the checkpoint message above after reading the root state files and the
-actual diff/log. Preserve migration `0008_run_lifecycle`; the next slice extends its
-attempt and work records rather than rewriting their evidence. Quiesce the worker before
-application rollback. Database rollback is restore-only from the verified pre-migration
-backup, as documented by the migration; never drop new evidence tables in place.
+actual diff/log. Preserve migrations `0008_run_lifecycle` and
+`0009_attempt_fencing`; the next slice extends their attempt and work records rather
+than rewriting their evidence. Quiesce the worker before application rollback. Database
+rollback is restore-only from the verified pre-migration backup, as documented by the
+migrations; never drop new evidence tables in place.

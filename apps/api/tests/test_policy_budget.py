@@ -166,6 +166,34 @@ def _allow_source(conn, data, target_index=0, *, decision="allow", redacted=None
     )
 
 
+def _lease_attempt(
+    conn, data, projection, attempt_id, grant, *, fence=1, attempt_no=1
+):
+    lease_token = uuid4()
+    conn.execute(
+        """INSERT INTO run_work (
+                run_id,state,available_at,lease_token,lease_expires_at,worker_id,fence
+            ) VALUES (%s,'leased',%s,%s,%s,'fixture-worker',%s)
+            ON CONFLICT (run_id) DO UPDATE SET state='leased',lease_token=EXCLUDED.lease_token,
+                lease_expires_at=EXCLUDED.lease_expires_at,worker_id=EXCLUDED.worker_id,
+                fence=EXCLUDED.fence""",
+        (
+            data["run_id"], data["at"], lease_token,
+            data["at"] + timedelta(days=1), fence,
+        ),
+    )
+    conn.execute(
+        """INSERT INTO provider_attempts (
+                attempt_id,run_id,target_id,attempt_no,work_fence,state,
+                request_hash,grant_id
+            ) VALUES (%s,%s,%s,%s,%s,'prepared',%s,%s)""",
+        (
+            attempt_id, data["run_id"], data["target_ids"][0], attempt_no, fence,
+            projection.request_hash, grant.grant_id,
+        ),
+    )
+
+
 def test_context_requires_explicit_current_source_consent(client, thread):
     data = _official_run(client, thread)
     with connect() as conn:
@@ -216,6 +244,7 @@ def test_reservation_grant_authorization_settlement_and_usage(client, thread):
             model_visible_input=projection.model_visible_input, timeout_ms=1000,
             max_output_tokens=50, allowed_model_ids=("fixture-model",),
         )
+        _lease_attempt(conn, data, projection, attempt_id, grant)
         assert PostgresAuthorizationPort(conn).validate_dispatch(
             request, data["at"] + timedelta(seconds=2),
         ).grant_id == grant.grant_id
@@ -248,6 +277,72 @@ def test_reservation_grant_authorization_settlement_and_usage(client, thread):
     assert usage["currency"] == "USD"
     assert usage["run"]["settled_microusd"] == decision.reservation.amount_microusd
     assert usage["run"]["input_tokens"] == projection.input_token_bound
+
+
+def test_unclaimed_grant_recovers_under_new_fence_without_duplicate_send(client, thread):
+    data = _official_run(client, thread)
+    with connect() as conn:
+        _allow_source(conn, data)
+        projection = PostgresContextPort(conn).prepare(_context_request(data)).projection
+        reservation = PostgresBudgetPort(conn).reserve(
+            _budget_request(data, projection),
+        ).reservation
+        first_attempt = uuid4()
+        first_grant = PostgresBudgetPort(conn).revalidate_dispatch(
+            reservation.reservation_id, projection.candidate_id,
+            first_attempt, uuid4(), data["at"] + timedelta(seconds=1),
+        ).grant
+        _lease_attempt(conn, data, projection, first_attempt, first_grant)
+        conn.execute(
+            """UPDATE provider_attempts
+                SET state='failed',error_code='internal_error',finished_at=clock_timestamp()
+                WHERE attempt_id=%s""",
+            (first_attempt,),
+        )
+
+        second_attempt = uuid4()
+        second_grant = PostgresBudgetPort(conn).revalidate_dispatch(
+            reservation.reservation_id, projection.candidate_id,
+            second_attempt, uuid4(), data["at"] + timedelta(seconds=2),
+        ).grant
+        assert second_grant is not None and second_grant.grant_id != first_grant.grant_id
+        _lease_attempt(
+            conn, data, projection, second_attempt, second_grant,
+            fence=2, attempt_no=2,
+        )
+        stale = GenerationRequest(
+            attempt_id=first_attempt, grant_id=first_grant.grant_id,
+            provider_id=data["provider_id"], requested_model_id="fixture-model",
+            model_visible_input=projection.model_visible_input, timeout_ms=1000,
+            max_output_tokens=50, allowed_model_ids=("fixture-model",),
+        )
+        with pytest.raises(PermissionError, match="unavailable"):
+            PostgresAuthorizationPort(conn).validate_dispatch(
+                stale, data["at"] + timedelta(seconds=3),
+            )
+        current = GenerationRequest(
+            attempt_id=second_attempt, grant_id=second_grant.grant_id,
+            provider_id=data["provider_id"], requested_model_id="fixture-model",
+            model_visible_input=projection.model_visible_input, timeout_ms=1000,
+            max_output_tokens=50, allowed_model_ids=("fixture-model",),
+        )
+        assert PostgresAuthorizationPort(conn).validate_dispatch(
+            current, data["at"] + timedelta(seconds=3),
+        ).grant_id == second_grant.grant_id
+        conn.execute(
+            """UPDATE provider_attempts
+                SET state='dispatch_claimed',dispatch_claimed_at=clock_timestamp()
+                WHERE attempt_id=%s""",
+            (second_attempt,),
+        )
+        assert conn.execute(
+            "SELECT count(*) AS count FROM dispatch_claims WHERE reservation_id=%s",
+            (reservation.reservation_id,),
+        ).fetchone()["count"] == 1
+        assert PostgresBudgetPort(conn).revalidate_dispatch(
+            reservation.reservation_id, projection.candidate_id,
+            uuid4(), uuid4(), data["at"] + timedelta(seconds=4),
+        ).reason == "reservation_unavailable"
 
 
 def test_last_budget_unit_is_atomic_across_competing_targets(client, thread):
@@ -438,6 +533,7 @@ def test_context_revocation_and_same_window_cap_tightening_block_dispatch(client
             model_visible_input=projection.model_visible_input, timeout_ms=1000,
             max_output_tokens=50, allowed_model_ids=("fixture-model",),
         )
+        _lease_attempt(conn, data, projection, attempt, grant.grant)
         with pytest.raises(PermissionError, match="budget"):
             PostgresAuthorizationPort(conn).validate_dispatch(
                 request, data["at"] + timedelta(seconds=4),
@@ -464,6 +560,7 @@ def test_claimed_unknown_delivery_carries_across_utc_reset(client, thread):
             model_visible_input=projection.model_visible_input, timeout_ms=1000,
             max_output_tokens=50, allowed_model_ids=("fixture-model",),
         )
+        _lease_attempt(conn, first, projection, attempt, grant)
         PostgresAuthorizationPort(conn).validate_dispatch(
             request, before_reset + timedelta(seconds=2),
         )

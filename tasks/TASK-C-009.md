@@ -41,6 +41,16 @@ official target claim rather than dispatching through an incomplete sequence. Se
 `docs/test-reports/C-009-lifecycle-checkpoint.md` for executed evidence and recovery
 instructions.
 
+### Pre-send recovery checkpoint · November 14, 2026
+
+Forward revision `0009_attempt_fencing` binds a provider attempt to its immutable grant
+and current work fence. It permits a new grant only when the prior grant has no dispatch
+claim, while a reservation-level unique claim ensures at most one eventual send across
+all recovered attempts. Dispatch authorization now rejects stale, expired, non-prepared,
+or unfenced attempts before transport and moves the reservation to held atomically with
+the one accepted claim. The complete PostgreSQL suite passes 74 tests. Network fan-out,
+receipt persistence, post-claim crash handling, and synthesis remain outstanding.
+
 ## Integration and recovery
 
 Consumes C-010 leases/reservations and publishes run events atomically. Quiesce worker and release only confirmed-unused reservations before rollback.

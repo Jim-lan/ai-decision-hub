@@ -23,7 +23,7 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | C-010 context, replay, budget and dispatch authorization | Checkpoint message `C-010 guard context replay and spend` adds exact provider-specific sanitized projections, versioned replay compatibility, conservative atomic reservations, UTC/Pacific quota windows, authoritative post-lock clocks, one-shot durable grants/claims, held unknown-delivery liabilities, evidence-safe reconciliation, default-zero owner policy, and `/v1/usage` through forward revision `0007_context_budget`. The final PostgreSQL suite passed 40 tests; fresh vanilla migration, contract/quality gates, and separate re-review passed. See `docs/test-reports/C-010.md`. | Complete; C-007 is next, no CR |
 | C-007 disabled Gemini adapter | Checkpoint message `C-007 add disabled Gemini adapter` adds the pinned official SDK behind ProviderPort, fail-closed qualification, a required C-010 authorization claim committed before transport, hardened one-request routing, truthful identity/usage mapping, and raw-receipt observation for C-009. The final PostgreSQL suite passed 70 tests; fresh vanilla migration, rebuilt runtime health/contract checks, quality gates, and separate re-review passed. See `docs/test-reports/C-007.md`. | Complete; live activation remains blocked pending owner qualification and smoke approval; C-008 is next, no CR |
 | C-008 exact manual originals | Checkpoint message `C-008 preserve manual originals` adds the RunRepository seam, owner-scoped run/target locking, exact content and digest preservation, truthful user-declared provenance, stable concurrent replay, deadline recovery, wrong-kind rejection, and the canonical response contract. The final PostgreSQL suite passed 71 tests; runtime health/contract, quality gates, and separate re-review passed. See `docs/test-reports/C-008.md`. | Complete; C-009 is next, no CR |
-| C-009 durable lifecycle foundation | In-progress checkpoint message `C-009 add durable lifecycle foundation` adds forward revision `0008_run_lifecycle`, canonical guarded run/target state, immutable ordered events, fenced work leases, manual parking, cancellation/deadline settlement, canonical polling/cancel contracts, and a deterministic concurrent-import barrier. The PostgreSQL suite passed 73 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Official fan-out, dispatch/crash recovery, synthesis, full transition coverage, and separate review remain. No CR. |
+| C-009 durable lifecycle and pre-send recovery | In-progress checkpoint messages `C-009 add durable lifecycle foundation` and `C-009 fence pre-send recovery` add revisions `0008_run_lifecycle` and `0009_attempt_fencing`: canonical guarded lifecycle, ordered events, fenced leases, manual parking, cancellation/deadline settlement, and reservation-level one-send enforcement across recovered unclaimed grants. The PostgreSQL suite passed 74 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Network fan-out, receipt/post-claim crash handling, synthesis, full transition coverage, and separate review remain. No CR. |
 
 ## Current handoff
 
@@ -67,6 +67,17 @@ contract gates passed. This remains C-009 in progress, so the count stays 9 of 1
 with official-provider prepared attempts, grant-bound dispatch, unknown-delivery crash
 recovery, synthesis handoff, remaining lifecycle edges, and separate review. Evidence
 and exact recovery scope are in `docs/test-reports/C-009-lifecycle-checkpoint.md`.
+
+The next C-009 checkpoint closes pre-send recovery fencing through revision
+`0009_attempt_fencing`. A reservation may receive a replacement grant only while every
+earlier grant remains unclaimed. The accepted transport claim is unique by reservation,
+is bound to a prepared provider attempt and the current unexpired worker fence, and
+atomically converts the reservation to held. A stale worker or stale prepared attempt
+therefore cannot send, while a crash before any claim can be recovered without consuming
+the only grant identity. The complete PostgreSQL suite now passes 74 tests. C-009 remains
+in progress at 9 of 15 cards; continue with actual independent network fan-out, receipt
+persistence, post-claim unknown-delivery recovery, synthesis, transition completeness,
+and separate review.
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 
