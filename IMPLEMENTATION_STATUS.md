@@ -1,6 +1,6 @@
 # Implementation status
 
-G1 approved · 2026-11-09 · C-001 through C-007 and C-010 completed by November 14, 2026.
+G1 approved · 2026-11-09 · C-001 through C-008 and C-010 completed by November 14, 2026.
 
 ## Recovery
 
@@ -22,6 +22,7 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | C-006 provider registry and immutable identity snapshots | Checkpoint message `C-006 freeze provider identity snapshots` adds truthful registry metadata, disabled Gemini candidate, immutable target snapshots, nullable resolved identity/usage fields, distinct verified-family counting, compatible legacy writers, and forward revisions `0005_provider_identity` plus `0006_identity_constraints`. The final PostgreSQL suite passed 27 tests; fresh/populated migrations, generated contract, runtime health, and separate re-review passed. See `docs/test-reports/C-006.md`. | Complete; no CR |
 | C-010 context, replay, budget and dispatch authorization | Checkpoint message `C-010 guard context replay and spend` adds exact provider-specific sanitized projections, versioned replay compatibility, conservative atomic reservations, UTC/Pacific quota windows, authoritative post-lock clocks, one-shot durable grants/claims, held unknown-delivery liabilities, evidence-safe reconciliation, default-zero owner policy, and `/v1/usage` through forward revision `0007_context_budget`. The final PostgreSQL suite passed 40 tests; fresh vanilla migration, contract/quality gates, and separate re-review passed. See `docs/test-reports/C-010.md`. | Complete; C-007 is next, no CR |
 | C-007 disabled Gemini adapter | Checkpoint message `C-007 add disabled Gemini adapter` adds the pinned official SDK behind ProviderPort, fail-closed qualification, a required C-010 authorization claim committed before transport, hardened one-request routing, truthful identity/usage mapping, and raw-receipt observation for C-009. The final PostgreSQL suite passed 70 tests; fresh vanilla migration, rebuilt runtime health/contract checks, quality gates, and separate re-review passed. See `docs/test-reports/C-007.md`. | Complete; live activation remains blocked pending owner qualification and smoke approval; C-008 is next, no CR |
+| C-008 exact manual originals | Checkpoint message `C-008 preserve manual originals` adds the RunRepository seam, owner-scoped run/target locking, exact content and digest preservation, truthful user-declared provenance, stable concurrent replay, deadline recovery, wrong-kind rejection, and the canonical response contract. The final PostgreSQL suite passed 71 tests; runtime health/contract, quality gates, and separate re-review passed. See `docs/test-reports/C-008.md`. | Complete; C-009 is next, no CR |
 
 ## Current handoff
 
@@ -41,11 +42,21 @@ C-006 adopted the frozen provider registry and identity evidence rules through f
 
 C-010 adopted the frozen context, idempotency, budget, and dispatch-authorization boundaries through forward revision `0007_context_budget`. It preserves exact legacy replay while normalizing new requests, stores immutable destination-redacted prepared bytes and their ordered recipe, reserves bounded worst-case exposure under serialized owner/provider-account locks, rechecks consent/tariffs/caps/quotas after authoritative lock-time clocks, and permits only one durable claim. A claim becomes an unresolved held liability before dispatch and carries across UTC and provider-local resets. Exact settlement, proof-gated release, overrun quarantine, usage accounting, fresh migration, 40 PostgreSQL regressions, contract/quality gates, and separate re-review passed. Evidence is recorded in `docs/test-reports/C-010.md`.
 
-C-007 implemented the frozen Gemini candidate seam without enabling live traffic. The official SDK is isolated behind ProviderPort; qualification, provider/model bounds, and the C-010 one-shot claim fail closed before a single hardened transport request. Returned identity and measured usage remain truthful, including unknown provenance and incomplete usage, and the raw receipt reaches the C-009 observer before validation. The complete PostgreSQL suite passed 70 tests; fresh migration, quality/contract gates, rebuilt runtime checks, and separate adversarial re-review passed. Evidence is recorded in `docs/test-reports/C-007.md`. Live activation remains blocked until the owner supplies and approves the dated account, tariff, privacy, quota, spend-policy, credential, and non-sensitive smoke evidence listed in the qualification record. C-008 is next; 8 of 15 P0 implementation cards are complete.
+C-007 implemented the frozen Gemini candidate seam without enabling live traffic. The official SDK is isolated behind ProviderPort; qualification, provider/model bounds, and the C-010 one-shot claim fail closed before a single hardened transport request. Returned identity and measured usage remain truthful, including unknown provenance and incomplete usage, and the raw receipt reaches the C-009 observer before validation. The complete PostgreSQL suite passed 70 tests; fresh migration, quality/contract gates, rebuilt runtime checks, and separate adversarial re-review passed. Evidence is recorded in `docs/test-reports/C-007.md`. Live activation remains blocked until the owner supplies and approves the dated account, tariff, privacy, quota, spend-policy, credential, and non-sensitive smoke evidence listed in the qualification record.
+
+C-008 moved manual-original persistence behind RunRepository. The adapter serializes
+run then target access, validates manual eligibility before replay, preserves exact
+submitted bytes and their digest, keeps provenance user-declared and unknown
+measurements null, and makes exact replay stable without duplicate audit evidence.
+Changed evidence, wrong-kind targets, foreign runs, and fresh post-deadline imports fail
+closed. The complete PostgreSQL suite passed 71 tests; quality/contract gates, rebuilt
+runtime contract/health, and separate re-review passed. Evidence is recorded in
+`docs/test-reports/C-008.md`. C-009 is next; 9 of 15 P0 implementation cards are
+complete. C-009 owns lifecycle/terminal freeze and its deterministic collision gate.
 
 Validation: python3 docs/testing/check_coverage.py passed for 61 requirements, 24 P0 cases and 15 acyclic cards. With openapi-spec-validator 0.7.2 installed, python3 -m openapi_spec_validator docs/api/openapi.yaml passed. python3 docs/testing/check_domain.py passed schema validation and one positive plus three negative audit fixtures. No product test or live provider run was part of these design checks.
 
-The owner approved the freeze. Verified remote annotated tag g1-design-v2.0 resolves to 9edbcd4b9a142d107df219bc64bd6730b39689cd. C-008 is the next assigned task under the approved execution plan. Historical interruption entries above describe the earlier STATE-001 checkpoint.
+The owner approved the freeze. Verified remote annotated tag g1-design-v2.0 resolves to 9edbcd4b9a142d107df219bc64bd6730b39689cd. C-009 is the next assigned task under the approved execution plan. Historical interruption entries above describe the earlier STATE-001 checkpoint.
 
 ## Verification before owner approval
 

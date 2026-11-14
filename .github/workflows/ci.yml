@@ -17,9 +17,9 @@ jobs:
         run: pip install -r apps/api/requirements-test.txt
       - name: Lint Python sources and checks
         run: ruff check apps/api/app apps/api/tests docs/testing infra/tests
-      - name: Verify typed provider boundary
+      - name: Verify typed ports and adapters
         run: |
-          mypy --strict --python-version 3.12 apps/api/app/ports.py apps/api/tests/typed_provider_fakes.py
+          mypy --strict --python-version 3.12 apps/api/app/ports.py apps/api/app/adapters/gemini.py apps/api/app/adapters/postgres_runs.py apps/api/tests/typed_provider_fakes.py
           python docs/testing/check_boundaries.py
       - name: Validate API, domain, and requirement contracts
         run: |

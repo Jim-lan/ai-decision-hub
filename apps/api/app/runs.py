@@ -5,14 +5,20 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.adapters.postgres_runs import PostgresRunRepository
 from app.contracts import (
     NewMessage,
     OriginalDetails,
     Provider,
     Run,
-    StoredOriginal,
     Usage,
     UsageWindow,
+)
+from app.ports import (
+    ManualOriginalCommand,
+    RepositoryConflict,
+    RepositoryNotFound,
+    RunRepository,
 )
 from app.security import audit, digest, principal, transaction
 from app.workspace import conversation, insert_message
@@ -61,16 +67,26 @@ class LegacyStart(BaseModel):
 
 
 class Original(NewMessage):
+    model_config = ConfigDict(extra="forbid")
+
     target_id: UUID
     model_family: str = Field(default="unknown", min_length=1, max_length=160, pattern=r"\S")
+    declared_app: str | None = Field(default=None, min_length=1, max_length=160, pattern=r"\S")
+    declared_model_id: str | None = Field(
+        default=None, min_length=1, max_length=160, pattern=r"\S"
+    )
+
+
+def repository(conn) -> RunRepository:
+    """Compose the infrastructure adapter at the application boundary."""
+    return PostgresRunRepository(conn)
 
 
 def run_record(conn, run_id, owner):
-    row = conn.execute("SELECT run_id, project_id, conversation_id, message_id, created_at, deadline FROM runs WHERE run_id=%s AND owner_id=%s",
-                       (run_id, owner)).fetchone()
-    if not row:
+    try:
+        return repository(conn).get_run(run_id, owner)
+    except RepositoryNotFound:
         raise HTTPException(404, "Run not found")
-    return row
 
 
 def summary(conn, row):
@@ -237,37 +253,36 @@ def list_runs(conversation_id: UUID, owner=Depends(principal), conn=Depends(tran
     return [summary(conn, row) for row in rows]
 
 
-def response_rows(conn, run_id):
-    return conn.execute("""
-        SELECT m.*, t.run_id, t.provider, t.model_id AS requested_model_id, t.gateway, t.routing_mode
-        FROM model_responses m JOIN run_targets t USING (target_id)
-        WHERE t.run_id=%s ORDER BY m.created_at, m.response_id""", (run_id,)).fetchall()
-
-
 @router.get("/runs/{run_id}/responses", response_model=list[OriginalDetails])
 def originals(run_id: UUID, owner=Depends(principal), conn=Depends(transaction)):
     run_record(conn, run_id, owner)
-    return response_rows(conn, run_id)
+    return repository(conn).list_originals(run_id, owner)
 
 
-@router.post("/runs/{run_id}/manual-responses", response_model=StoredOriginal, status_code=201)
+@router.post("/runs/{run_id}/manual-responses", response_model=OriginalDetails, status_code=201)
 def import_original(run_id: UUID, data: Original, request: Request, owner=Depends(principal), conn=Depends(transaction)):
-    run = run_record(conn, run_id, owner)
-    target = conn.execute("SELECT * FROM run_targets WHERE run_id=%s AND target_id=%s FOR UPDATE",
-                          (run_id, data.target_id)).fetchone()
-    if not target:
-        raise HTTPException(404, "Run target not found")
-    existing = conn.execute("SELECT * FROM model_responses WHERE target_id=%s", (data.target_id,)).fetchone()
-    if existing:
-        if (existing["content"], existing["model_family"]) != (data.content, data.model_family):
-            raise HTTPException(409, "This target already has an immutable original")
-        return existing
-    if datetime.now(timezone.utc) >= run["deadline"]:
-        raise HTTPException(409, "This run has reached its deadline")
-    row = conn.execute("""
-        INSERT INTO model_responses (target_id,actual_model_id,model_family,identity_confidence,
-            acquisition_mode,content,source_hash) VALUES (%s,%s,%s,'user_declared','manual',%s,%s) RETURNING *
-    """, (data.target_id, target["model_id"], data.model_family, data.content, digest(data.content))).fetchone()
-    audit(conn, "manual_original_imported", request.state.trace, owner, row["response_id"],
-          project=run["project_id"])
-    return row
+    command = ManualOriginalCommand(
+        owner_id=owner,
+        run_id=run_id,
+        target_id=data.target_id,
+        content=data.content,
+        model_family=data.model_family,
+        declared_app=data.declared_app,
+        declared_model_id=data.declared_model_id,
+    )
+    try:
+        result = repository(conn).import_manual_original(command)
+    except RepositoryNotFound:
+        raise HTTPException(404, "Run target not found") from None
+    except RepositoryConflict:
+        raise HTTPException(409, "Manual original conflicts with immutable run state") from None
+    if result.created:
+        audit(
+            conn,
+            "manual_original_imported",
+            request.state.trace,
+            owner,
+            result.original["response_id"],
+            project=result.project_id,
+        )
+    return result.original

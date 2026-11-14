@@ -188,6 +188,7 @@
         "type": "object"
       },
       "Original": {
+        "additionalProperties": false,
         "properties": {
           "content": {
             "maxLength": 64000,
@@ -195,6 +196,34 @@
             "pattern": "\\S",
             "title": "Content",
             "type": "string"
+          },
+          "declared_app": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared App"
+          },
+          "declared_model_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Model Id"
           },
           "model_family": {
             "default": "unknown",
@@ -874,79 +903,6 @@
           "model_targets"
         ],
         "title": "Start",
-        "type": "object"
-      },
-      "StoredOriginal": {
-        "properties": {
-          "acquisition_mode": {
-            "enum": [
-              "official_api",
-              "manual"
-            ],
-            "title": "Acquisition Mode",
-            "type": "string"
-          },
-          "actual_model_id": {
-            "maxLength": 160,
-            "minLength": 1,
-            "pattern": "\\S",
-            "title": "Actual Model Id",
-            "type": "string"
-          },
-          "content": {
-            "minLength": 1,
-            "title": "Content",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "identity_confidence": {
-            "enum": [
-              "provider_reported",
-              "user_declared",
-              "unknown"
-            ],
-            "title": "Identity Confidence",
-            "type": "string"
-          },
-          "model_family": {
-            "maxLength": 160,
-            "minLength": 1,
-            "pattern": "\\S",
-            "title": "Model Family",
-            "type": "string"
-          },
-          "response_id": {
-            "format": "uuid",
-            "title": "Response Id",
-            "type": "string"
-          },
-          "source_hash": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Source Hash",
-            "type": "string"
-          },
-          "target_id": {
-            "format": "uuid",
-            "title": "Target Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "response_id",
-          "target_id",
-          "actual_model_id",
-          "model_family",
-          "identity_confidence",
-          "acquisition_mode",
-          "content",
-          "source_hash",
-          "created_at"
-        ],
-        "title": "StoredOriginal",
         "type": "object"
       },
       "Target": {
@@ -1841,7 +1797,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StoredOriginal"
+                  "$ref": "#/components/schemas/OriginalDetails"
                 }
               }
             },

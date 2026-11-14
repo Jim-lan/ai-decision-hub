@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
 from uuid import uuid4
 
 from app.db import connect
@@ -35,17 +36,68 @@ def test_two_originals_retry_and_conflict(client, thread):
     assert providers["google"]["status"] == "disabled"
     assert providers["google"]["configured_model_id"] is None
     assert providers["google"]["model_family"] is None
-    for target in run["targets"]:
-        data = {"target_id":target["target_id"], "content":"  原文\n"+target["model_id"], "model_family":"unknown"}
+    for position, target in enumerate(run["targets"]):
+        content = "  Exact CRLF\r\n原文\n" + target["model_id"]
+        data = {
+            "target_id": target["target_id"],
+            "content": content,
+            "model_family": "unknown",
+            "declared_app": "Fixture Chat" if position else None,
+        }
+        if position:
+            data["declared_model_id"] = "Declared fixture model"
         with ThreadPoolExecutor(max_workers=2) as pool:
             res = list(pool.map(lambda _:client.post(path+"/manual-responses", json=data), range(2)))
         assert all(r.status_code == 201 for r in res)
         assert res[0].json()["response_id"] == res[1].json()["response_id"]
+        original = res[0].json()
+        assert original["content"] == content
+        assert original["source_hash"] == hashlib.sha256(content.encode()).hexdigest()
+        assert original["run_id"] == run["run_id"]
+        assert original["provider"] == "manual"
+        assert original["requested_model_id"] == target["model_id"]
+        assert original["actual_model_id"] == data.get(
+            "declared_model_id", target["model_id"]
+        )
+        assert original["declared_model_id"] == original["actual_model_id"]
+        assert original["declared_app"] == data["declared_app"]
+        assert original["resolved_provider_id"] is None
+        assert original["resolved_model_id"] is None
+        assert original["elapsed_ms"] is None
+        assert original["input_tokens"] is None
+        assert original["output_tokens"] is None
+        assert original["actual_cost_microusd"] is None
+        assert original["attempt_no"] == 0
+        assert original["context_snapshot_id"] is None
+        assert original["inclusion"] == "included"
         assert client.post(path+"/manual-responses", json=data | {"content":"edited"}).status_code == 409
+        assert client.post(
+            path + "/manual-responses",
+            json=data | {"model_family": "changed-family"},
+        ).status_code == 409
+        assert client.post(
+            path + "/manual-responses",
+            json=data | {"declared_app": "Changed App"},
+        ).status_code == 409
+        assert client.post(
+            path + "/manual-responses",
+            json=data | {"declared_model_id": "Changed model"},
+        ).status_code == 409
+        with connect() as conn:
+            event_count = conn.execute(
+                """SELECT count(*) AS count FROM audit_events
+                   WHERE action='manual_original_imported' AND resource_id=%s""",
+                (original["response_id"],),
+            ).fetchone()["count"]
+        assert event_count == 1
     assert client.get(path).json()["status"] == "complete"
     rows = client.get(path+"/responses").json()
     assert len(rows) == 2
-    assert all(r["identity_confidence"] == "user_declared" and r["content"].startswith("  原文\n") for r in rows)
+    assert all(
+        r["identity_confidence"] == "user_declared"
+        and r["content"].startswith("  Exact CRLF\r\n原文\n")
+        for r in rows
+    )
     assert all(r["resolved_provider_id"] is None and r["resolved_model_id"] is None for r in rows)
     assert all(r["attempt_no"] == 0 and r["inclusion"] == "included" for r in rows)
 
@@ -98,13 +150,138 @@ def test_expired_manual_target_preserves_original(client, thread):
     run = start(client, thread)
     path = f"/v1/runs/{run['run_id']}"
     assert client.post(path+"/manual-responses", json={"target_id":str(uuid4()), "content":"wrong"}).status_code == 404
-    assert client.post(path+"/manual-responses", json={"target_id":run["targets"][0]["target_id"], "content":"original"}).status_code == 201
+    original_data = {
+        "target_id": run["targets"][0]["target_id"],
+        "content": "original",
+        "declared_app": "Manual fixture",
+    }
+    created = client.post(path+"/manual-responses", json=original_data)
+    assert created.status_code == 201
     with connect() as conn:
         conn.execute("UPDATE runs SET deadline=now()-interval '1 minute' WHERE run_id=%s", (run["run_id"],))
     assert client.get(path).json()["status"] == "partial_complete"
+    replay = client.post(path+"/manual-responses", json=original_data)
+    assert replay.status_code == 201
+    assert replay.json()["response_id"] == created.json()["response_id"]
+    assert client.post(
+        path + "/manual-responses",
+        json=original_data | {"declared_app": "Edited declaration"},
+    ).status_code == 409
     assert client.post(path+"/manual-responses", json={"target_id":run["targets"][1]["target_id"], "content":"late"}).status_code == 409
     assert len(client.get(path+"/responses").json()) == 1
     assert client.get(f"/v1/runs/{uuid4()}/responses").status_code == 404
+
+
+def test_manual_import_hides_foreign_run_and_rejects_official_target(client, thread):
+    run = start(client, thread)
+    path = f"/v1/runs/{run['run_id']}"
+    with connect() as conn:
+        provider = "fixture-provider-" + uuid4().hex
+        conn.execute(
+            """INSERT INTO provider_models (
+                   provider_id,alias,gateway,routing_mode,status,last_verified_at,
+                   acquisition_mode,app_name,configured_model_id,model_family,
+                   capabilities,pricing_status,privacy_profile,pricing_version,
+                   identity_confidence
+               ) VALUES (%s,'official','fixture-gateway','direct','enabled',now(),
+                         'official_api','Fixture API','fixture-model','Fixture Family',
+                         ARRAY['text'],'verified_free','allowlisted','fixture-price-v1',
+                         'provider_reported')""",
+            (provider,),
+        )
+        official_target = conn.execute(
+            """INSERT INTO run_targets (
+                   run_id,provider,alias,model_id,gateway,routing_mode
+               ) VALUES (%s,%s,'official','fixture-model','fixture-gateway','direct')
+               RETURNING target_id""",
+            (run["run_id"], provider),
+        ).fetchone()["target_id"]
+        official_content = "existing official response"
+        conn.execute(
+            """INSERT INTO model_responses (
+                   target_id,actual_model_id,model_family,identity_confidence,
+                   acquisition_mode,content,source_hash,resolved_provider_id,
+                   resolved_model_id
+               ) VALUES (%s,'fixture-model','Fixture Family','provider_reported',
+                         'official_api',%s,%s,%s,'fixture-model')""",
+            (
+                official_target,
+                official_content,
+                hashlib.sha256(official_content.encode()).hexdigest(),
+                provider,
+            ),
+        )
+
+        foreign_owner = conn.execute(
+            """INSERT INTO users (login,password_hash) VALUES (%s,'unused')
+               RETURNING user_id""",
+            ("foreign-" + uuid4().hex,),
+        ).fetchone()["user_id"]
+        foreign_project = conn.execute(
+            """INSERT INTO projects (owner_id,name) VALUES (%s,'Foreign')
+               RETURNING project_id""",
+            (foreign_owner,),
+        ).fetchone()["project_id"]
+        foreign_conversation = conn.execute(
+            """INSERT INTO conversations (project_id,title) VALUES (%s,'Foreign')
+               RETURNING conversation_id""",
+            (foreign_project,),
+        ).fetchone()["conversation_id"]
+        foreign_content = "Foreign question"
+        foreign_message = conn.execute(
+            """INSERT INTO messages (
+                   conversation_id,sequence,role,content,source_hash
+               ) VALUES (%s,1,'user',%s,%s) RETURNING message_id""",
+            (
+                foreign_conversation,
+                foreign_content,
+                hashlib.sha256(foreign_content.encode()).hexdigest(),
+            ),
+        ).fetchone()["message_id"]
+        foreign_run = conn.execute(
+            """INSERT INTO runs (
+                   project_id,conversation_id,message_id,owner_id,request_key,
+                   request_hash,deadline
+               ) VALUES (%s,%s,%s,%s,%s,'foreign',now()+interval '1 hour')
+               RETURNING run_id""",
+            (
+                foreign_project,
+                foreign_conversation,
+                foreign_message,
+                foreign_owner,
+                "foreign-" + uuid4().hex,
+            ),
+        ).fetchone()["run_id"]
+        foreign_target = conn.execute(
+            """INSERT INTO run_targets (
+                   run_id,provider,alias,model_id,gateway,routing_mode
+               ) VALUES (%s,'manual','user-declared','Foreign model','manual',
+                         'user_declared') RETURNING target_id""",
+            (foreign_run,),
+        ).fetchone()["target_id"]
+
+    wrong_kind = client.post(
+        path + "/manual-responses",
+        json={
+            "target_id": str(official_target),
+            "content": official_content,
+            "model_family": "Fixture Family",
+        },
+    )
+    assert wrong_kind.status_code == 409
+    foreign = client.post(
+        f"/v1/runs/{foreign_run}/manual-responses",
+        json={"target_id": str(foreign_target), "content": "must stay hidden"},
+    )
+    assert foreign.status_code == 404
+    assert client.post(
+        path + "/manual-responses",
+        json={
+            "target_id": run["targets"][0]["target_id"],
+            "content": "unknown field",
+            "unexpected": True,
+        },
+    ).status_code == 422
 
 
 def test_normalized_replay_defaults_and_context_order_are_stable(client, thread):

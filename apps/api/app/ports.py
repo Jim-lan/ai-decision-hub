@@ -234,6 +234,28 @@ class RepositoryNotFound(Exception):
     """The requested canonical record is outside the repository scope."""
 
 
+class RepositoryConflict(Exception):
+    """The requested mutation conflicts with immutable canonical state."""
+
+
+@dataclass(frozen=True)
+class ManualOriginalCommand:
+    owner_id: UUID
+    run_id: UUID
+    target_id: UUID
+    content: str
+    model_family: str
+    declared_app: str | None
+    declared_model_id: str | None
+
+
+@dataclass(frozen=True)
+class ManualOriginalResult:
+    original: Mapping[str, object]
+    project_id: UUID
+    created: bool
+
+
 @runtime_checkable
 class ConversationRepository(Protocol):
     """Canonical owner/project/conversation/message persistence boundary."""
@@ -271,3 +293,18 @@ class ConversationRepository(Protocol):
         after_resource: UUID,
         limit: int,
     ) -> list[Mapping[str, object]]: ...
+
+
+@runtime_checkable
+class RunRepository(Protocol):
+    """Canonical owner-scoped run and immutable-original persistence boundary."""
+
+    def get_run(self, run_id: UUID, owner_id: UUID) -> Mapping[str, object]: ...
+
+    def list_originals(
+        self, run_id: UUID, owner_id: UUID
+    ) -> list[Mapping[str, object]]: ...
+
+    def import_manual_original(
+        self, command: ManualOriginalCommand
+    ) -> ManualOriginalResult: ...
