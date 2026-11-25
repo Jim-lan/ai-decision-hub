@@ -32,6 +32,19 @@ The [owner review packet](docs/OWNER_DESIGN_REVIEW.md) consolidates the candidat
 
 ## Implementation alignment
 
+C-009 post-claim recovery alignment, November 25, 2026: forward revision
+`0010_post_claim_recovery` and atomic claim/attempt writes implement the existing
+DB-03/DB-04 obligations. Recovery relies on durable claims, fences stale workers,
+preserves uncertain budget holds, and does not retry ambiguous delivery. No frozen
+public contract or phase boundary changes. The full C-009 lifecycle gate remains open;
+see `docs/test-reports/C-009-post-claim-recovery.md`. No CR is required.
+
+November 25, 2026: the owner explicitly requested public GitHub visibility for
+Jim-lan/ai-decision-hub. The repository was changed to public and anonymous API access
+verified. This is source distribution only; it does not deploy the application, expose
+runtime data or credentials, or alter the G1 product architecture or P0/P1/P2 scope.
+No design exception is required for this operational owner instruction.
+
 C-002 adopted the prototype database through forward migration `0003_storage_contract` on November 10, 2026. The implementation adds the frozen same-scope relational invariants and append-only evidence enforcement, and removes the inherited pgvector requirement from greenfield migration while preserving existing installed extensions. No public contract changed and no Change Request was opened. Lifecycle expansion, audit metadata, export, and recovery remain with their assigned later cards; the G1 tag and P0/P1/P2 phase boundaries are unchanged.
 
 C-003 adopted the owner-security boundary through forward migration `0004_security_audit` on November 10, 2026. The implementation preserves the frozen single-owner, local-only identity model while adding hashed expiring sessions, revocation, exact-origin state-change checks, durable login throttling, owner/project-scoped authorization, typed audit actions/outcomes, schema-versioned audit rows, and database enforcement against update, delete, truncate, or new legacy-format inserts. Existing unambiguous audit rows are upgraded; ambiguous historical rows remain explicitly `schema_version=0` with `outcome=unknown`. Sanitized failures expose and log only a trace identifier and roll back the request transaction. No public contract or phase boundary changed and no Change Request was opened. Portable export redaction and later cross-feature authorization assertions remain with C-015 and their named integration cards.

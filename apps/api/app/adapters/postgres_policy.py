@@ -983,6 +983,14 @@ class PostgresAuthorizationPort(AuthorizationPort):
         ).fetchone()
         if not claimed:
             raise PermissionError("Dispatch grant has already been claimed")
+        attempt = self.connection.execute(
+            """UPDATE provider_attempts
+                  SET state='dispatch_claimed',dispatch_claimed_at=%s
+                WHERE attempt_id=%s AND state='prepared' RETURNING attempt_id""",
+            (as_of, request.attempt_id),
+        ).fetchone()
+        if not attempt:
+            raise PermissionError("Dispatch attempt is no longer prepared")
         self.connection.execute(
             """UPDATE budget_reservations SET state='held'
                 WHERE reservation_id=%s AND state='reserved'""",

@@ -164,7 +164,7 @@ def test_security_migration_types_known_audit_and_preserves_unknown_legacy_rows(
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0009_attempt_fencing"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0010_post_claim_recovery"
             known = conn.execute("""SELECT schema_version,project_id,outcome FROM audit_events
                 WHERE event_id=%s""", (known_event,)).fetchone()
             assert known == {"schema_version": 1, "project_id": ids["project"], "outcome": "accepted"}
@@ -244,7 +244,7 @@ def test_provider_identity_migration_preserves_unknown_history_and_freezes_snaps
         upgrade("head")
         upgrade("head")
         with connect() as conn:
-            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0009_attempt_fencing"
+            assert conn.execute("SELECT version_num FROM alembic_version").fetchone()["version_num"] == "0010_post_claim_recovery"
             manual = conn.execute("""SELECT acquisition_mode, app_name, configured_model_id,
                 model_family, capabilities, pricing_status, privacy_profile, pricing_version,
                 identity_confidence FROM provider_models

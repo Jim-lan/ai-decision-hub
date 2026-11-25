@@ -228,7 +228,11 @@ class PostgresRunRepository:
             """SELECT count(*) FILTER (WHERE state IN (
                          'pending','in_flight','awaiting_manual'
                      )) AS open_count,
-                      count(*) FILTER (WHERE state='succeeded') AS success_count
+                      count(*) FILTER (WHERE state='succeeded') AS success_count,
+                      bool_or(state='delivery_unknown') AS has_unknown_delivery,
+                      bool_or(state='timed_out') AS has_timeout,
+                      (array_agg(error_code ORDER BY target_id)
+                         FILTER (WHERE error_code IS NOT NULL))[1] AS first_error
                FROM run_targets WHERE run_id=%s""",
             (run["run_id"],),
         ).fetchone()
@@ -240,7 +244,14 @@ class PostgresRunRepository:
             if run["state"] in {"running", "awaiting_manual"}:
                 run = self._transition_run(run, "synthesizing", trace_id)
         elif run["state"] in {"queued", "running", "awaiting_manual"}:
-            run = self._transition_run(run, "failed", trace_id, error_code="timeout")
+            error_code = (
+                "delivery_unknown"
+                if counts["has_unknown_delivery"]
+                else "timeout"
+                if counts["has_timeout"]
+                else counts["first_error"] or "internal_error"
+            )
+            run = self._transition_run(run, "failed", trace_id, error_code=error_code)
         self.connection.execute(
             """UPDATE run_work SET state='finished',available_at=clock_timestamp(),
                        lease_token=NULL,lease_expires_at=NULL,worker_id=NULL,
@@ -606,3 +617,86 @@ class PostgresRunRepository:
                 allowed_model_ids=(target["model_id"],),
             ),
         )
+
+    def recover_claimed_dispatches(
+        self, claim: WorkClaim, trace_id: UUID
+    ) -> int:
+        """Freeze ambiguous claimed calls after a replacement worker takes the lease."""
+        run = self.connection.execute(
+            "SELECT * FROM runs WHERE run_id=%s FOR UPDATE", (claim.run_id,)
+        ).fetchone()
+        work = self.connection.execute(
+            """SELECT * FROM run_work WHERE run_id=%s AND state='leased'
+               AND lease_token=%s AND fence=%s
+               AND lease_expires_at>clock_timestamp() FOR UPDATE""",
+            (claim.run_id, claim.lease_token, claim.fence),
+        ).fetchone()
+        if not run or not work or run["state"] != "running":
+            raise RepositoryConflict
+        ambiguous = self.connection.execute(
+            """SELECT attempt.*,claim.claimed_at
+                 FROM provider_attempts attempt
+                 JOIN dispatch_claims claim
+                   ON claim.attempt_id=attempt.attempt_id
+                  AND claim.grant_id=attempt.grant_id
+                 JOIN run_targets target
+                   ON target.target_id=attempt.target_id
+                  AND target.run_id=attempt.run_id
+                WHERE attempt.run_id=%s
+                  AND attempt.state IN ('prepared','dispatch_claimed')
+                  AND attempt.work_fence<%s
+                  AND target.state='in_flight'
+                  AND target.attempt_no=attempt.attempt_no
+                ORDER BY attempt.target_id
+                FOR UPDATE OF attempt,target""",
+            (claim.run_id, claim.fence),
+        ).fetchall()
+        for attempt in ambiguous:
+            self.connection.execute(
+                """UPDATE provider_attempts
+                      SET state='delivery_unknown',error_code='delivery_unknown',
+                          dispatch_claimed_at=COALESCE(dispatch_claimed_at,%s),
+                          finished_at=clock_timestamp()
+                    WHERE attempt_id=%s""",
+                (attempt["claimed_at"], attempt["attempt_id"]),
+            )
+            target = self.connection.execute(
+                "SELECT * FROM run_targets WHERE target_id=%s",
+                (attempt["target_id"],),
+            ).fetchone()
+            self._transition_target(
+                target,
+                "delivery_unknown",
+                trace_id,
+                error_code="delivery_unknown",
+            )
+        if not ambiguous:
+            return 0
+
+        run = self._finish_collection(cast(dict[str, Any], run), trace_id)
+        if run["state"] in {"running", "awaiting_manual"}:
+            open_counts = self.connection.execute(
+                """SELECT count(*) FILTER (WHERE acquisition_mode='official_api'
+                              AND state IN ('pending','in_flight')) AS official_open,
+                          count(*) FILTER (WHERE state='awaiting_manual') AS manual_open
+                     FROM run_targets WHERE run_id=%s""",
+                (claim.run_id,),
+            ).fetchone()
+            if open_counts["official_open"]:
+                self.connection.execute(
+                    """UPDATE run_work SET state='available',
+                               available_at=clock_timestamp(),lease_token=NULL,
+                               lease_expires_at=NULL,worker_id=NULL,
+                               updated_at=clock_timestamp() WHERE run_id=%s""",
+                    (claim.run_id,),
+                )
+            elif open_counts["manual_open"]:
+                if run["state"] == "running":
+                    self._transition_run(run, "awaiting_manual", trace_id)
+                self.connection.execute(
+                    """UPDATE run_work SET state='waiting',available_at=%s,
+                               lease_token=NULL,lease_expires_at=NULL,worker_id=NULL,
+                               updated_at=clock_timestamp() WHERE run_id=%s""",
+                    (run["deadline"], claim.run_id),
+                )
+        return len(ambiguous)

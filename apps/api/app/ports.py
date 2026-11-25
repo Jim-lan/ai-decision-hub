@@ -347,6 +347,10 @@ class RunRepository(Protocol):
         self, claim: WorkClaim, trace_id: UUID
     ) -> DispatchWork | None: ...
 
+    def recover_claimed_dispatches(
+        self, claim: WorkClaim, trace_id: UUID
+    ) -> int: ...
+
     def import_manual_original(
         self, command: ManualOriginalCommand
     ) -> ManualOriginalResult: ...

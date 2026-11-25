@@ -4,7 +4,7 @@ G1 approved · 2026-11-09 · C-001 through C-008 and C-010 completed by November
 
 ## Recovery
 
-Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) and [task queue](TASK_BACKLOG.md), in order. Use the private remote main branch as the durable checkpoint. Run `git status --short --branch`, `git log -5 --oneline` and `git tag --list 'g1-*'`. Review subsequent commits before using a status entry. The project board still contains the six original sprint issues and is a historical planning aid. The root queue gives the current execution order.
+Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) and [task queue](TASK_BACKLOG.md), in order. Use the existing remote main branch as the durable checkpoint. The owner changed Jim-lan/ai-decision-hub to public on November 25, 2026; anonymous API access was verified. Runtime secrets and backups remain excluded from Git. Run `git status --short --branch`, `git log -5 --oneline` and `git tag --list 'g1-*'`. Review subsequent commits before using a status entry. The project board still contains the six original sprint issues and is a historical planning aid. The root queue gives the current execution order.
 
 ## Evidence ledger
 
@@ -26,6 +26,30 @@ Read [AGENTS.md](AGENTS.md), this file, [design decisions](DESIGN_BASELINE.md) a
 | C-009 durable lifecycle and dispatch preparation | In-progress checkpoint messages `C-009 add durable lifecycle foundation`, `C-009 fence pre-send recovery`, and `C-009 prepare fenced dispatch attempts` add revisions `0008_run_lifecycle` and `0009_attempt_fencing`, guarded lifecycle/events/leases, reservation-level one-send enforcement, and atomic grant-bound attempt preparation with exact frozen input. The PostgreSQL suite passed 75 tests; lint, strict typing, boundary, API, domain, and coverage gates passed. See `docs/test-reports/C-009-lifecycle-checkpoint.md`. | In progress; do not count as a completed card. Provider execution, receipt/post-claim crash handling, synthesis, full transition coverage, and separate review remain. No CR. |
 
 ## Current handoff
+
+### Latest checkpoint · November 25, 2026
+
+C-009 post-claim recovery is validated for checkpoint commit
+`C-009 freeze ambiguous claimed dispatch`, based on prior remote SHA `fbb9ca8`.
+Revision `0010_post_claim_recovery` permits a replacement worker to terminalize older
+claimed attempts while preserving immutable attempt identity and terminal evidence.
+Authorization now atomically advances the attempt with its dispatch claim. Recovery
+also recognizes legacy committed claims whose attempt still says prepared. Both paths
+retain the held liability, emit ordered target/run evidence, and never resend. Manual
+siblings park until deadline and pending official siblings remain eligible.
+
+Fresh evidence: 33 focused PostgreSQL tests and 81 full-suite tests passed; three
+upstream warnings remain. Ruff, strict typing, boundaries, API/domain/coverage checks,
+and the vanilla PostgreSQL double-upgrade gate passed. A separate read-only reviewer
+found one blocking claim-state gap; it was corrected and re-reviewed with no remaining
+blocking checkpoint finding. See `docs/test-reports/C-009-post-claim-recovery.md`.
+
+C-009 remains in progress; 9 of 15 cards are complete. Next implement safe recovery of
+prepared-but-unclaimed attempts, then provider execution outside transactions, raw and
+late receipt persistence, accounting and synthesis handoff. Deadline/cancel attempt
+terminalization and the complete transition/integration gates also remain outstanding.
+No live provider was activated, no credits/reset were consumed, and no CR was needed.
+Historical checkpoint entries below retain their original evidence counts.
 
 G0-01 was published at be400d2. G0-02 through G0-05 are complete in the G0 closeout commit. The saved candidate includes architecture, API/domain contracts, migration/lifecycle notes, matrix and comparison fixtures. A separate reviewer inspected the fixes and reported no outstanding blocking inconsistencies in the reviewed candidate.
 

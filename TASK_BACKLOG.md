@@ -1,8 +1,17 @@
 # Task backlog
 
 **Next action: continue [C-009](tasks/TASK-C-009.md) from the validated lifecycle,
-pre-send fencing, and prepared-attempt checkpoints; execute providers outside the
-transaction, then persist receipts/outcomes and post-claim recovery under the freeze.**
+prepared-attempt, and post-claim recovery checkpoints. Recover prepared-but-unclaimed
+attempts, then execute providers outside transactions and persist receipts/outcomes.**
+
+November 25 checkpoint: `C-009 freeze ambiguous claimed dispatch` preserves current and
+legacy claimed calls as unknown delivery without another send or released liability.
+33 focused and 81 full PostgreSQL tests passed, alongside quality/contract/migration
+gates and separate re-review. Details: [recovery evidence](docs/test-reports/C-009-post-claim-recovery.md).
+This is an in-progress checkpoint; the card count remains 9 of 15. The older summary
+below describes the prior committed checkpoints; post-claim recovery is now delivered,
+while provider execution, raw/late receipts, pre-claim recovery, synthesis and remaining
+transition/release coverage still need implementation.
 
 | Task | Status | Exit evidence / dependency |
 |---|---|---|

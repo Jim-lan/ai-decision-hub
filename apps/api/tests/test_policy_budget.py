@@ -12,7 +12,7 @@ from app.adapters.postgres_policy import (
 )
 from app.adapters.postgres_runs import PostgresRunRepository
 from app.db import connect
-from app.ports import BudgetRequest, ContextRequest, GenerationRequest
+from app.ports import BudgetRequest, ContextRequest, GenerationRequest, RepositoryConflict
 from app.security import digest
 
 
@@ -180,7 +180,7 @@ def _lease_attempt(
                 fence=EXCLUDED.fence""",
         (
             data["run_id"], data["at"], lease_token,
-            data["at"] + timedelta(days=1), fence,
+            max(data["at"], datetime.now(timezone.utc)) + timedelta(days=1), fence,
         ),
     )
     conn.execute(
@@ -388,6 +388,113 @@ def test_fenced_worker_prepares_attempt_before_transport(client, thread):
             "SELECT count(*) AS count FROM dispatch_claims WHERE attempt_id=%s",
             (prepared.attempt_id,),
         ).fetchone()["count"] == 0
+
+
+@pytest.mark.parametrize('remaining', ['none', 'manual', 'official'])
+@pytest.mark.parametrize('legacy_claim', [False, True])
+def test_replacement_worker_freezes_claimed_dispatch_as_unknown(
+    client, thread, remaining, legacy_claim,
+):
+    data = _official_run(client, thread, targets=2 if remaining == 'official' else 1)
+    with connect() as conn:
+        _allow_source(conn, data)
+        projection = PostgresContextPort(conn).prepare(_context_request(data)).projection
+        reservation = PostgresBudgetPort(conn).reserve(
+            _budget_request(data, projection),
+        ).reservation
+        if remaining == 'manual':
+            conn.execute(
+                """INSERT INTO run_targets (
+                       run_id,provider,alias,model_id,gateway,routing_mode,state
+                   ) VALUES (%s,'manual','user-declared','Manual sibling','manual',
+                             'user_declared','awaiting_manual')""",
+                (data['run_id'],),
+            )
+        conn.execute(
+            """INSERT INTO run_work (run_id,state,available_at)
+               VALUES (%s,'available',clock_timestamp())""",
+            (data["run_id"],),
+        )
+        repository = PostgresRunRepository(conn, PostgresBudgetPort(conn))
+        first_claim = repository.claim_work("first-worker", uuid4(), 30)
+        prepared = repository.prepare_next_dispatch(first_claim, uuid4())
+        if legacy_claim:
+            # Reproduce the old writer's committed claim with a still-prepared attempt.
+            conn.execute(
+                """INSERT INTO dispatch_claims (grant_id,reservation_id,attempt_id,claimed_at)
+                   VALUES (%s,%s,%s,clock_timestamp())""",
+                (prepared.request.grant_id, reservation.reservation_id, prepared.attempt_id),
+            )
+            conn.execute(
+                "UPDATE budget_reservations SET state='held' WHERE reservation_id=%s",
+                (reservation.reservation_id,),
+            )
+        else:
+            PostgresAuthorizationPort(conn).validate_dispatch(
+                prepared.request, data["at"] + timedelta(seconds=2),
+            )
+            assert conn.execute(
+                "SELECT state FROM provider_attempts WHERE attempt_id=%s",
+                (prepared.attempt_id,),
+            ).fetchone()['state'] == 'dispatch_claimed'
+        conn.execute(
+            """UPDATE run_work SET lease_expires_at=clock_timestamp()-interval '1 second'
+                WHERE run_id=%s""",
+            (data["run_id"],),
+        )
+
+    with connect() as conn:
+        repository = PostgresRunRepository(conn, PostgresBudgetPort(conn))
+        replacement = repository.claim_work("replacement-worker", uuid4(), 30)
+        assert replacement is not None and replacement.fence == first_claim.fence + 1
+        with pytest.raises(RepositoryConflict):
+            repository.recover_claimed_dispatches(first_claim, uuid4())
+        assert repository.recover_claimed_dispatches(replacement, uuid4()) == 1
+        assert conn.execute(
+            """SELECT state,error_code,raw_receipt FROM provider_attempts
+                WHERE attempt_id=%s""", (prepared.attempt_id,),
+        ).fetchone() == {
+            "state": "delivery_unknown",
+            "error_code": "delivery_unknown",
+            "raw_receipt": None,
+        }
+        assert conn.execute(
+            "SELECT state,error_code FROM run_targets WHERE target_id=%s",
+            (prepared.target_id,),
+        ).fetchone() == {
+            "state": "delivery_unknown", "error_code": "delivery_unknown",
+        }
+        assert conn.execute(
+            "SELECT state,error_code FROM runs WHERE run_id=%s", (data["run_id"],),
+        ).fetchone() == {
+            "state": {'none':'failed','manual':'awaiting_manual','official':'running'}[remaining],
+            "error_code": 'delivery_unknown' if remaining == 'none' else None,
+        }
+        assert conn.execute(
+            "SELECT state FROM budget_reservations WHERE reservation_id=%s",
+            (reservation.reservation_id,),
+        ).fetchone()["state"] == "held"
+        assert conn.execute(
+            "SELECT state FROM run_work WHERE run_id=%s", (data["run_id"],),
+        ).fetchone()["state"] == {
+            'none':'finished','manual':'waiting','official':'available',
+        }[remaining]
+        assert conn.execute(
+            'SELECT count(*) AS count FROM dispatch_claims WHERE reservation_id=%s',
+            (reservation.reservation_id,),
+        ).fetchone()['count'] == 1
+        if remaining != 'official':
+            assert repository.claim_work('third-worker', uuid4(), 30) is None
+        else:
+            third_claim = repository.claim_work('third-worker', uuid4(), 30)
+            assert third_claim.run_id == data['run_id']
+            assert repository.recover_claimed_dispatches(third_claim, uuid4()) == 0
+            # Keep this deliberately unfinished fixture out of unrelated worker tests.
+            conn.execute(
+                """UPDATE run_work SET state='waiting',available_at=%s,
+                   lease_token=NULL,lease_expires_at=NULL,worker_id=NULL WHERE run_id=%s""",
+                (data['at'] + timedelta(days=3), data['run_id']),
+            )
 
 
 def test_last_budget_unit_is_atomic_across_competing_targets(client, thread):

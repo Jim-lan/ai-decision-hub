@@ -62,6 +62,22 @@ execution, receipt/result persistence, post-claim recovery, and synthesis remain
 
 ## Integration and recovery
 
+### Post-claim recovery checkpoint · November 25, 2026
+
+Revision `0010_post_claim_recovery` permits terminal recovery under a replacement
+worker fence. Authorization writes the dispatch claim and attempt state in one
+transaction; legacy claimed-but-prepared records are recognized through durable claim
+evidence. Both become `delivery_unknown` without releasing the reservation or resending.
+Manual siblings park and pending official siblings remain available. Stale recovery
+claims fail closed. The separate reviewer cleared the checkpoint after the claim-state
+gap was fixed. 33 focused and 81 full PostgreSQL tests passed, plus lint/type/contract,
+coverage and vanilla migration gates. See `docs/test-reports/C-009-post-claim-recovery.md`.
+
+This is not card completion. Pre-claim recovery, provider execution, raw/late receipts,
+deadline/cancel attempt terminalization, synthesis handoff, all transition tests and
+full integration remain open. Next recover prepared-but-unclaimed attempts using the
+existing immutable request and reservation without replaying any claimed call.
+
 Consumes C-010 leases/reservations and publishes run events atomically. Quiesce worker and release only confirmed-unused reservations before rollback.
 
 ## Change control

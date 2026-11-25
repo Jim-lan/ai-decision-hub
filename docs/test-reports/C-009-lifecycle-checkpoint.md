@@ -57,6 +57,11 @@ gates passed. No live provider was enabled or called.
 
 ## Outstanding C-009 work
 
+Update November 25, 2026: the subsequent post-claim recovery checkpoint is recorded in
+[C-009-post-claim-recovery.md](C-009-post-claim-recovery.md). It supersedes the
+post-claim recovery gap below and raises the complete regression count to 81. The
+earlier validation counts above remain historical. C-009 itself is still in progress.
+
 - Prepare provider attempts from immutable context snapshots and budget reservations,
   bind dispatch to the C-010 one-shot authorization grant, and fan out independently.
 - Persist response/receipt outcomes without leaking first-round answers across targets.

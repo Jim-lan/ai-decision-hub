@@ -1,9 +1,4 @@
-"""Durable P0 run worker entry point.
-
-The current production registry admits manual targets only. Official-provider execution
-is added to this worker in the next C-009 checkpoint; an unsupported official claim is
-rolled back rather than dispatched without the frozen authorization sequence.
-"""
+"""Durable P0 run worker entry point."""
 
 import logging
 import socket
@@ -32,6 +27,8 @@ class RunWorker:
             )
             if claim is None:
                 return False
+            if repository.recover_claimed_dispatches(claim, trace_id):
+                return True
             if not repository.park_manual_work(claim, trace_id):
                 raise RuntimeError("No qualified provider executor for claimed run")
             return True
