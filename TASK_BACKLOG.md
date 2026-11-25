@@ -8,6 +8,8 @@ November 25 checkpoint: `C-009 freeze ambiguous claimed dispatch` preserves curr
 legacy claimed calls as unknown delivery without another send or released liability.
 33 focused and 81 full PostgreSQL tests passed, alongside quality/contract/migration
 gates and separate re-review. Details: [recovery evidence](docs/test-reports/C-009-post-claim-recovery.md).
+Code commit `9bf741e` is remotely verified; hosted Workspace run 45724826439 passed
+both jobs, including browser and recovery integration.
 This is an in-progress checkpoint; the card count remains 9 of 15. The older summary
 below describes the prior committed checkpoints; post-claim recovery is now delivered,
 while provider execution, raw/late receipts, pre-claim recovery, synthesis and remaining

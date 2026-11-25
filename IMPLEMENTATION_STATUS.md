@@ -43,6 +43,9 @@ upstream warnings remain. Ruff, strict typing, boundaries, API/domain/coverage c
 and the vanilla PostgreSQL double-upgrade gate passed. A separate read-only reviewer
 found one blocking claim-state gap; it was corrected and re-reviewed with no remaining
 blocking checkpoint finding. See `docs/test-reports/C-009-post-claim-recovery.md`.
+Checkpoint `9bf741edcca29ffd40b33111816c52a5cdf99078` was pushed and verified on
+origin/main. Hosted [Workspace run 45724826439](https://github.com/Jim-lan/ai-decision-hub/actions/runs/45724826439)
+passed quality and foundation, including browser and recovery journeys.
 
 C-009 remains in progress; 9 of 15 cards are complete. Next implement safe recovery of
 prepared-but-unclaimed attempts, then provider execution outside transactions, raw and

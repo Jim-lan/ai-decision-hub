@@ -52,8 +52,12 @@ Six recovery combinations cover current/legacy claim writers with no sibling, a 
 manual sibling, or a pending official sibling. They assert stale-fence rejection,
 unknown attempt/target state, accurate run outcome, retained liability, correct work
 scheduling and one unchanged dispatch claim. No live provider was enabled or called.
-Hosted CI evidence will be checked after the checkpoint push; local gates above are
-the actual executed evidence and do not imply G4 release readiness.
+Hosted [Workspace run 45724826439](https://github.com/Jim-lan/ai-decision-hub/actions/runs/45724826439)
+passed both quality and foundation jobs for commit
+`9bf741edcca29ffd40b33111816c52a5cdf99078`. Foundation includes migration, the full
+PostgreSQL suite, runtime contract, HTTP entry points, browser and recovery journeys.
+The remote main SHA was verified after push. These gates validate the checkpoint;
+complete C-009 acceptance and G4 release readiness remain open.
 
 ## Remaining work and rollback
 
